@@ -1409,6 +1409,16 @@ struct MemSpaceToOpSpace<MemorySpace::Device>
 {
   static constexpr OperationSpace value = OperationSpace::Device;
 };
+template <>
+struct MemSpaceToOpSpace<MemorySpace::Pinned>
+{
+  static constexpr OperationSpace value = OperationSpace::Unified_Device;
+};
+template <>
+struct MemSpaceToOpSpace<MemorySpace::Unified>
+{
+  static constexpr OperationSpace value = OperationSpace::Unified_Device;
+};
 #endif
 
 template <typename T, MemorySpace SPACE>
@@ -1492,6 +1502,8 @@ private:
   using Base = ArrayOpsBase<T, OperationSpace::Host>;
 #if defined(AXOM_USE_GPU) && defined(AXOM_GPUCC) && defined(AXOM_USE_UMPIRE)
   using BaseDevice = ArrayOpsBase<T, OperationSpace::Device>;
+  // Works with unified and pinned memory.
+  using BaseUM = ArrayOpsBase<T, OperationSpace::Unified_Device>;
 #endif
 
 public:
@@ -1503,6 +1515,11 @@ public:
     if(space == MemorySpace::Device)
     {
       BaseDevice::init(array, begin, nelems);
+      return;
+    }
+    else if(space == MemorySpace::Unified || space == MemorySpace::Pinned)
+    {
+      BaseUM::init(array, begin, nelems);
       return;
     }
 #else
@@ -1523,6 +1540,11 @@ public:
     if(space == MemorySpace::Device)
     {
       BaseDevice::fill(array, begin, nelems, value);
+      return;
+    }
+    else if(space == MemorySpace::Unified || space == MemorySpace::Pinned)
+    {
+      BaseUM::fill(array, begin, nelems, value);
       return;
     }
 #else
@@ -1546,6 +1568,11 @@ public:
       BaseDevice::fill_range(array, begin, nelems, values, valueSpace);
       return;
     }
+    else if(space == MemorySpace::Unified || space == MemorySpace::Pinned)
+    {
+      BaseUM::fill_range(array, begin, nelems, values, valueSpace);
+      return;
+    }
 #else
     AXOM_UNUSED_VAR(allocId);
 #endif
@@ -1565,6 +1592,11 @@ public:
     if(space == MemorySpace::Device)
     {
       BaseDevice::destroy(array, begin, nelems);
+      return;
+    }
+    else if(space == MemorySpace::Unified || space == MemorySpace::Pinned)
+    {
+      BaseUM::destroy(array, begin, nelems);
       return;
     }
 #else
@@ -1591,6 +1623,11 @@ public:
       BaseDevice::move(array, src_begin, src_end, dst);
       return;
     }
+    else if(space == MemorySpace::Unified || space == MemorySpace::Pinned)
+    {
+      BaseUM::move(array, src_begin, src_end, dst);
+      return;
+    }
 #else
     AXOM_UNUSED_VAR(allocId);
 #endif
@@ -1605,6 +1642,11 @@ public:
     if(space == MemorySpace::Device)
     {
       BaseDevice::realloc_move(array, nelems, values);
+      return;
+    }
+    else if(space == MemorySpace::Unified || space == MemorySpace::Pinned)
+    {
+      BaseUM::realloc_move(array, nelems, values);
       return;
     }
 #else
@@ -1622,6 +1664,11 @@ public:
     if(space == MemorySpace::Device)
     {
       BaseDevice::emplace(array, dst, std::forward<Args>(args)...);
+      return;
+    }
+    else if(space == MemorySpace::Unified || space == MemorySpace::Pinned)
+    {
+      BaseUM::emplace(array, dst, std::forward<Args>(args)...);
       return;
     }
 #else
