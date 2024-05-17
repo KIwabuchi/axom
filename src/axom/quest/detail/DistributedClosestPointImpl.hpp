@@ -12,6 +12,7 @@
 #include "axom/primal.hpp"
 #include "axom/spin.hpp"
 #include "axom/core/execution/runtime_policy.hpp"
+#include "axom/core/WhereMacro.hpp"
 
 #include "axom/fmt.hpp"
 
@@ -650,7 +651,7 @@ public:
     }
 
     // Copy points to internal memory
-    PointArray coords(ptCount, ptCount);
+    m_objectPtCoords = PointArray(ptCount, ptCount, m_allocatorID);
     axom::Array<axom::IndexType> domIds(ptCount, ptCount);
     std::size_t copiedCount = 0;
     conduit::Node tmpValues;
@@ -684,7 +685,7 @@ public:
       const int N = internal::extractSize(copySrc);
       const std::size_t nBytes = sizeof(double) * DIM * N;
 
-      axom::copy(coords.data() + copiedCount,
+      axom::copy(m_objectPtCoords.data() + copiedCount,
                  copySrc.fetch_existing("x").data_ptr(),
                  nBytes);
       tmpValues.reset();
@@ -693,16 +694,71 @@ public:
 
       copiedCount += N;
     }
+
+    // Compute bounding box
+    // Don't rely on BVH, whose bounding box is a bit different.
+#if defined(AXOM_USE_RAJA)
+    axom::ArrayView<PointType> coordsView = m_objectPtCoords.view();
+#if 1
+    PointType minPt, maxPt;
+    for (int d=0; d<DIM; ++d)
+    {
+      RAJA::ReduceMin<ReducePolicy, double> minCoord(std::numeric_limits<double>::max());
+      RAJA::ReduceMax<ReducePolicy, double> maxCoord(std::numeric_limits<double>::min());
+      RAJA::forall<LoopPolicy>(
+        RAJA::RangeSegment(0, ptCount),
+        AXOM_LAMBDA(RAJA::Index_type n) {
+          for (int d=0; d<DIM; ++d)
+          {
+            minCoord.min(coordsView[n][d]);
+            maxCoord.max(coordsView[n][d]);
+          }
+        });
+      minPt[d] = minCoord.get();
+      maxPt[d] = maxCoord.get();
+    }
+#else
+    // This option doesn't compile on rzansel.  Possible nvcc + RAJA issue.
+    // Tried with both gcc8 and clang10.  Works on vernal and genie.
+    RAJA::ReduceMin<ReducePolicy, double> minCorner[DIM];
+    RAJA::ReduceMax<ReducePolicy, double> maxCorner[DIM];
+    for (int d=0; d<DIM; ++d)
+    {
+      minCorner[d].reset(std::numeric_limits<double>::max());
+      maxCorner[d].reset(std::numeric_limits<double>::min());
+    }
+    RAJA::forall<LoopPolicy>(
+      RAJA::RangeSegment(0, ptCount),
+      AXOM_LAMBDA(RAJA::Index_type n) {
+        for (int d=0; d<DIM; ++d)
+        {
+          minCorner[d].min(coordsView[n][d]);
+          maxCorner[d].max(coordsView[n][d]);
+        }
+      });
+    PointType minPt, maxPt;
+    for (int d=0; d<DIM; ++d)
+    {
+      minPt[d] = minCorner[d].get();
+      maxPt[d] = maxCorner[d].get();
+    }
+#endif
+    m_objectBb = BoxType(minPt, maxPt);
+#else
+    for(axom::IndexType n = 0; n < ptCount; ++n)
+    {
+      m_objectBb.addPoint(m_objectPtCoords[n]);
+    }
+#endif
+    gatherBoundingBoxes(m_objectBb, m_objectPartitionBbs);
+std::cout<<__WHERE<<m_rank << ' ' << m_objectBb<<std::endl;
+
     // copy computed data to ExecSpace
-    m_objectPtCoords = PointArray(coords, m_allocatorID);
     m_objectPtDomainIds = axom::Array<axom::IndexType>(domIds, m_allocatorID);
   }
 
   bool generateBVHTree() override
   {
-    // Delegates to generateBVHTreeImpl<> which uses
-    // the execution space templated bvh tree
-
     SLIC_ASSERT_MSG(!m_bvh, "BVH tree already initialized");
 
     // In case user changed the allocator after setObjectMesh,
@@ -714,18 +770,20 @@ public:
     }
 
     m_bvh = std::make_unique<BVHTreeType>();
-    return generateBVHTreeImpl(m_bvh.get());
-  }
+    const int npts = m_objectPtCoords.size();
+    axom::Array<BoxType> boxesArray(npts, npts, m_allocatorID);
+    auto boxesView = boxesArray.view();
+    auto pointsView = m_objectPtCoords.view();
 
-  /// Get local copy of all ranks BVH root bounding boxes.
-  void gatherBVHRoots()
-  {
-    SLIC_ASSERT_MSG(
-      m_bvh,
-      "BVH tree must be initialized before calling 'gatherBVHRoots");
+    axom::for_all<ExecSpace>(
+      npts,
+      AXOM_LAMBDA(axom::IndexType i) { boxesView[i] = BoxType {pointsView[i]}; });
 
-    BoxType local_bb = m_bvh->getBounds();
-    gatherBoundingBoxes(local_bb, m_objectPartitionBbs);
+    // Build bounding volume hierarchy
+    m_bvh->setAllocatorID(m_allocatorID);
+    int result = m_bvh->initialize(boxesView, npts);
+
+    return (result == spin::BVH_BUILD_OK);
   }
 
   /// Allgather one bounding box from each rank.
@@ -787,6 +845,19 @@ public:
    * The worst case could incur nranks^2 sends.  To avoid excessive
    * buffer usage, we occasionally check the sends for completion,
    * using check_send_requests().
+   *
+   * To exclude fruitless searches and communication, we check the
+   * distance between object partition and query partition, using
+   * their bounding boxes.  If a query partition is too far from an
+   * object partition, we don't check that specific pair.
+   *
+   * TODO: The bounding box for a partition could be excessively big
+   * if the domains on that partition are spread out far, leading to
+   * some fruitless communications and checks.  Consider having one
+   * bounding box per domain instead of one per partition.  This goes
+   * for query mesh too.  One way simple to implement this is to have
+   * a xferNode for each query domain and a BVH for each object
+   * domain.
    */
   void computeClosestPoints(conduit::Node& queryMesh,
                             const std::string& topologyName) const override
@@ -953,28 +1024,6 @@ private:
 
   // Note: following should be private, but nvcc complains about lambdas in private scope
 public:
-  /// Templated implementation of generateBVHTree function
-  bool generateBVHTreeImpl(BVHTreeType* bvh)
-  {
-    SLIC_ASSERT(bvh != nullptr);
-
-    const int npts = m_objectPtCoords.size();
-    axom::Array<BoxType> boxesArray(npts, npts, m_allocatorID);
-    auto boxesView = boxesArray.view();
-    auto pointsView = m_objectPtCoords.view();
-
-    axom::for_all<ExecSpace>(
-      npts,
-      AXOM_LAMBDA(axom::IndexType i) { boxesView[i] = BoxType {pointsView[i]}; });
-
-    // Build bounding volume hierarchy
-    bvh->setAllocatorID(m_allocatorID);
-    int result = bvh->initialize(boxesView, npts);
-
-    gatherBVHRoots();
-
-    return (result == spin::BVH_BUILD_OK);
-  }
 
   void computeLocalClosestPoints(conduit::Node& xferNode) const
   {
@@ -1184,6 +1233,9 @@ private:
   PointArray m_objectPtCoords;
 
   axom::Array<axom::IndexType> m_objectPtDomainIds;
+
+  //!@brief Bounding box for m_objectPtCoords.
+  BoxType m_objectBb;
 
   /*!  @brief Object partition bounding boxes, one per rank.
     All are in physical space, not index space.
