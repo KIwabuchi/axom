@@ -426,7 +426,8 @@ Attribute* DataStore::createAttributeEmpty(const std::string& name)
     return nullptr;
   }
 
-  Attribute* new_attribute = new(std::nothrow) Attribute(name);
+  Attribute* new_attribute =
+    rebind_construct<AllocatorType, Attribute>(m_allocator, name, m_allocator);
   if(new_attribute == nullptr)
   {
     return nullptr;

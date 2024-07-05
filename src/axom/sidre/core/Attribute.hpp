@@ -19,6 +19,9 @@
 // Standard C++ headers
 #include <string>
 
+#include <metall/metall.hpp>
+#include <metall/container/string.hpp>
+
 // Other axom headers
 #include "axom/config.hpp"
 #include "axom/core/Macros.hpp"
@@ -40,6 +43,8 @@ namespace sidre
 class Attribute
 {
 public:
+  using AllocatorType = metall::manager::allocator_type<void>;
+
   /*!
    * Friend declarations to constrain usage via controlled access to
    * private members.
@@ -49,7 +54,7 @@ public:
   /*!
    * \brief Return const reference to name of Attribute object.
    */
-  const std::string& getName() const { return m_name; }
+  const auto& getName() const { return m_name; }
 
   /*!
    * \brief Return the unique index of this Attribute object.
@@ -127,6 +132,12 @@ public:
     return static_cast<TypeID>(m_default_value.dtype().id());
   }
 
+  /*!
+   *  \brief ctor that creates an Attribute with given name
+   *         which has no data associated with it.
+   */
+  Attribute(const std::string& name, const AllocatorType& alloc);
+
 private:
   DISABLE_DEFAULT_CTOR(Attribute);
   DISABLE_MOVE_AND_ASSIGNMENT(Attribute);
@@ -134,12 +145,6 @@ private:
   //@{
   //!  @name Private Attribute ctor and dtor
   //!        (callable only by DataStore methods).
-
-  /*!
-   *  \brief Private ctor that creates an Attribute with given name
-   *         which has no data associated with it.
-   */
-  Attribute(const std::string& name);
 
   /*!
    * \brief Private copy ctor.
@@ -154,13 +159,15 @@ private:
   //@}
 
   /// Name of this Attribute object.
-  std::string m_name;
+  metall::container::string m_name;
 
   /// Attribute's unique index within DataStore object that created it.
   IndexType m_index;
 
   /// Default value of attribute.
   Node m_default_value;
+
+  AllocatorType m_allocator;
 };
 
 } /* end namespace sidre */
