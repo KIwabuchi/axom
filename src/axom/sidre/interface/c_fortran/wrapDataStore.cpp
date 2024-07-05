@@ -41,8 +41,11 @@ static int ShroudLenTrim(const char *src, int nsrc)
 
 SIDRE_DataStore *SIDRE_DataStore_new(SIDRE_DataStore *SHC_rv)
 {
+  assert(false && "This code does not work now");
+
   // splicer begin class.DataStore.method.new
-  axom::sidre::DataStore *SHCXX_rv = new axom::sidre::DataStore();
+  axom::sidre::DataStore *SHCXX_rv = nullptr;
+  // = new axom::sidre::DataStore();
   SHC_rv->addr = static_cast<void *>(SHCXX_rv);
   SHC_rv->idtor = 1;
   return SHC_rv;

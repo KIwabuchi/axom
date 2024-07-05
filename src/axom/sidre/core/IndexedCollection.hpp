@@ -12,6 +12,9 @@
 #include <string>
 #include <vector>
 
+#include <metall/container/vector.hpp>
+#include <metall/container/stack.hpp>
+
 // Other axom headers
 #include "axom/config.hpp"
 #include "axom/core/Types.hpp"
@@ -20,6 +23,7 @@
 // Sidre project headers
 #include "SidreTypes.hpp"
 #include "ItemCollection.hpp"
+#include "Memory.hpp"
 
 namespace axom
 {
@@ -45,11 +49,19 @@ public:
   using iterator = typename ItemCollection<T>::iterator;
   using const_iterator = typename ItemCollection<T>::const_iterator;
 
+  using AllocatorType = metall::manager::allocator_type<void>;
+  using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
+
 public:
   //
   // Default compiler-generated ctor, dtor, copy ctor, and copy assignment
   // operator suffice for this class.
   //
+
+  IndexedCollection(const AllocatorType& alloc)
+    : m_items(alloc)
+    , m_free_ids(alloc)
+  { }
 
   /// Gets the number of items stored in the collection
   size_t getNumItems() const { return m_num_items; }
@@ -70,13 +82,17 @@ public:
   /// Return the \a item at index \idx or nullptr if that index is empty
   T* getItem(IndexType idx)
   {
-    return (hasItem(idx) ? m_items[static_cast<unsigned>(idx)] : nullptr);
+    return (hasItem(idx)
+              ? metall::to_raw_pointer(m_items[static_cast<unsigned>(idx)])
+              : nullptr);
   }
 
   /// Return the \a item at index \idx or nullptr if that index is empty
   T const* getItem(IndexType idx) const
   {
-    return (hasItem(idx) ? m_items[static_cast<unsigned>(idx)] : nullptr);
+    return (hasItem(idx)
+              ? metall::to_raw_pointer(m_items[static_cast<unsigned>(idx)])
+              : nullptr);
   }
 
   /// Insert \a item into the next available free index
@@ -232,8 +248,8 @@ private:
   }
 
 private:
-  std::vector<T*> m_items;
-  std::stack<IndexType> m_free_ids;
+  metall::container::vector<Ptr<VoidPtr, T>> m_items;
+  metall::container::stack<IndexType> m_free_ids;
   int m_num_items {0};
 };
 
@@ -273,12 +289,12 @@ T* IndexedCollection<T>::removeItem(IndexType idx)
 {
   if(hasItem(idx))
   {
-    T* item = m_items[idx];
+    auto item = m_items[idx];
     m_items[idx] = nullptr;
     m_free_ids.push(idx);
     --m_num_items;
 
-    return item;
+    return metall::to_raw_pointer(item);
   }
   return nullptr;
 }

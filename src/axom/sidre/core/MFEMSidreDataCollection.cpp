@@ -90,7 +90,9 @@ MFEMSidreDataCollection::MFEMSidreDataCollection(const std::string& collection_n
   , m_owns_datastore(true)
   , m_owns_mesh_data(own_mesh_data)
 {
-  m_datastore_ptr = new sidre::DataStore();
+  assert(false && "Does not work now");
+  m_datastore_ptr = nullptr;
+  // new sidre::DataStore();
 
   sidre::Group* global_grp =
     m_datastore_ptr->getRoot()->createGroup(collection_name + "_global");

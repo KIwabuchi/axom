@@ -114,6 +114,11 @@
 #include <string>
 #include <vector>
 
+#include <metall/container/stack.hpp>
+#include <metall/container/vector.hpp>
+#include <metall/container/string.hpp>
+#include <metall/container/string_key_store.hpp>
+
 // Other axom headers
 #include "axom/config.hpp"
 #include "axom/core/Types.hpp"
@@ -121,8 +126,10 @@
 // Sidre project headers
 #include "SidreTypes.hpp"
 #include "ItemCollection.hpp"
+#include "Memory.hpp"
 
 #if defined(AXOM_USE_SPARSEHASH)
+  #error "AXOM_USE_SPARSEHASH is not supported"
   #include "axom/sparsehash/dense_hash_map"
 #else
   #include <unordered_map>
@@ -163,11 +170,22 @@ public:
   using iterator = typename ItemCollection<T>::iterator;
   using const_iterator = typename ItemCollection<T>::const_iterator;
 
+  using AllocatorType = metall::manager::allocator_type<void>;
+  using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
+
 public:
   //
   // Default compiler-generated ctor, dtor, copy ctor, and copy assignment
   // operator suffice for this class.
   //
+  MapCollection(const AllocatorType& alloc)
+    : m_items(alloc)
+    , m_free_ids(alloc)
+    , m_name2idx_map(alloc)
+#if defined(AXOM_USE_SPARSEHASH)
+    , m_empty_key(alloc)
+#endif
+  { }
 
   ///
   size_t getNumItems() const { return m_items.size() - m_free_ids.size(); }
@@ -181,7 +199,7 @@ public:
   ///
   bool hasItem(const std::string& name) const
   {
-    typename MapType::const_iterator mit = m_name2idx_map.find(name);
+    auto mit = m_name2idx_map.find(name.c_str());
     return (mit != m_name2idx_map.end() ? true : false);
   }
 
@@ -195,27 +213,35 @@ public:
   ///
   T* getItem(const std::string& name)
   {
-    typename MapType::iterator mit = m_name2idx_map.find(name);
-    return (mit != m_name2idx_map.end() ? m_items[mit->second] : nullptr);
+    auto mit = m_name2idx_map.find(name);
+    return (mit != m_name2idx_map.end()
+              ? metall::to_raw_pointer(m_items[m_name2idx_map.value(mit)])
+              : nullptr);
   }
 
   ///
   T const* getItem(const std::string& name) const
   {
-    typename MapType::const_iterator mit = m_name2idx_map.find(name);
-    return (mit != m_name2idx_map.end() ? m_items[mit->second] : nullptr);
+    auto mit = m_name2idx_map.find(name);
+    return (mit != m_name2idx_map.end()
+              ? metall::to_raw_pointer(m_items[m_name2idx_map.value(mit)])
+              : nullptr);
   }
 
   ///
   T* getItem(IndexType idx)
   {
-    return (hasItem(idx) ? m_items[static_cast<unsigned>(idx)] : nullptr);
+    return (hasItem(idx)
+              ? metall::to_raw_pointer(m_items[static_cast<unsigned>(idx)])
+              : nullptr);
   }
 
   ///
   T const* getItem(IndexType idx) const
   {
-    return (hasItem(idx) ? m_items[static_cast<unsigned>(idx)] : nullptr);
+    return (hasItem(idx)
+              ? metall::to_raw_pointer(m_items[static_cast<unsigned>(idx)])
+              : nullptr);
   }
 
   ///
@@ -228,8 +254,9 @@ public:
   ///
   IndexType getItemIndex(const std::string& name) const
   {
-    typename MapType::const_iterator mit = m_name2idx_map.find(name);
-    return (mit != m_name2idx_map.end() ? mit->second : InvalidIndex);
+    auto mit = m_name2idx_map.find(name);
+    return (mit != m_name2idx_map.end() ? m_name2idx_map.value(mit)
+                                        : InvalidIndex);
   }
 
   ///
@@ -271,18 +298,19 @@ public:
   const_iterator end() const { return const_iterator(this, false); }
 
 private:
-  std::vector<T*> m_items;
-  std::stack<IndexType> m_free_ids;
+  metall::container::vector<Ptr<VoidPtr, T>> m_items;
+  metall::container::stack<IndexType> m_free_ids;
 
 #if defined(AXOM_USE_SPARSEHASH)
-  using MapType = axom::google::dense_hash_map<std::string, IndexType>;
+  using MapType =
+    axom::google::dense_hash_map<metall::container::string, IndexType>;
 #else
-  using MapType = std::unordered_map<std::string, IndexType>;
+  using MapType = metall::container::string_key_store<IndexType>;
 #endif
 
   MapType m_name2idx_map;
 #if defined(AXOM_USE_SPARSEHASH)
-  std::string m_empty_key;
+  metall::container::string m_empty_key;
 #endif
 };
 
@@ -336,7 +364,7 @@ IndexType MapCollection<T>::insertItem(T* item, const std::string& name)
   }
 #endif
 
-  if(m_name2idx_map.insert(std::make_pair(name, idx)).second)
+  if(m_name2idx_map.insert(name, idx))
   {
     // name was inserted into map
     if(use_recycled_index)
@@ -365,12 +393,12 @@ T* MapCollection<T>::removeItem(const std::string& name)
 {
   T* ret_val = nullptr;
 
-  typename MapType::iterator mit = m_name2idx_map.find(name);
+  auto mit = m_name2idx_map.find(name);
   if(mit != m_name2idx_map.end())
   {
-    IndexType idx = mit->second;
+    IndexType idx = m_name2idx_map.value(mit);
 
-    ret_val = m_items[idx];
+    ret_val = metall::to_raw_pointer(m_items[idx]);
 
     m_name2idx_map.erase(mit);
     m_items[idx] = nullptr;

@@ -85,6 +85,10 @@
 #include <string>
 #include <vector>
 
+#include <metall/container/vector.hpp>
+#include <metall/container/stack.hpp>
+#include <metall/container/list.hpp>
+
 // Other axom headers
 #include "axom/config.hpp"
 #include "axom/core/Types.hpp"
@@ -92,6 +96,7 @@
 // Sidre project headers
 #include "SidreTypes.hpp"
 #include "ItemCollection.hpp"
+#include "Memory.hpp"
 
 namespace axom
 {
@@ -125,11 +130,20 @@ public:
   using iterator = typename ItemCollection<T>::iterator;
   using const_iterator = typename ItemCollection<T>::const_iterator;
 
+  using AllocatorType = metall::manager::allocator_type<void>;
+  using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
+
 public:
   //
   // Default compiler-generated ctor, dtor, copy ctor, and copy assignment
   // operator suffice for this class.
   //
+
+  ListCollection(const AllocatorType& alloc)
+    : m_items(alloc)
+    , m_free_ids(alloc)
+    , m_index_list(alloc)
+  { }
 
   ///
   size_t getNumItems() const { return m_items.size() - m_free_ids.size(); }
@@ -150,13 +164,17 @@ public:
   ///
   T* getItem(IndexType idx)
   {
-    return (hasItem(idx) ? m_items[static_cast<unsigned>(idx)] : nullptr);
+    return (hasItem(idx)
+              ? metall::to_raw_pointer(m_items[static_cast<unsigned>(idx)])
+              : nullptr);
   }
 
   ///
   T const* getItem(IndexType idx) const
   {
-    return (hasItem(idx) ? m_items[static_cast<unsigned>(idx)] : nullptr);
+    return (hasItem(idx)
+              ? metall::to_raw_pointer(m_items[static_cast<unsigned>(idx)])
+              : nullptr);
   }
 
   ///
@@ -186,10 +204,10 @@ public:
   const_iterator end() const { return const_iterator(this, false); }
 
 private:
-  std::vector<T*> m_items;
-  std::stack<IndexType> m_free_ids;
+  metall::container::vector<Ptr<VoidPtr, T>> m_items;
+  metall::container::stack<IndexType> m_free_ids;
 
-  std::list<IndexType> m_index_list;
+  metall::container::list<IndexType> m_index_list;
 };
 
 template <typename T>
@@ -261,7 +279,7 @@ T* ListCollection<T>::removeItem(IndexType idx)
     {
       if(*itr == idx)
       {
-        ret_val = m_items[idx];
+        ret_val = metall::to_raw_pointer(m_items[idx]);
         m_index_list.erase(itr);
         m_items[idx] = nullptr;
         m_free_ids.push(idx);

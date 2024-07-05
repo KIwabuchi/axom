@@ -173,7 +173,7 @@ Buffer* Buffer::deallocate()
   releaseBytes(getVoidPtr());
   m_node.set_external(DataType(m_node.dtype()), nullptr);
 
-  std::set<View*>::iterator vit = m_views.begin();
+  auto vit = m_views.begin();
   for(; vit != m_views.end(); ++vit)
   {
     (*vit)->unapply();
@@ -330,7 +330,11 @@ void Buffer::importFrom(conduit::Node& buffer_holder)
  *
  *************************************************************************
  */
-Buffer::Buffer(IndexType uid) : m_index(uid), m_views(), m_node() { }
+Buffer::Buffer(IndexType uid, const AllocatorType& alloc)
+  : m_index(uid)
+  , m_views(alloc)
+  , m_node()
+{ }
 
 /*
  *************************************************************************
@@ -401,7 +405,7 @@ void Buffer::detachFromView(View* view)
  */
 void Buffer::detachFromAllViews()
 {
-  std::set<View*>::iterator vit = m_views.begin();
+  auto vit = m_views.begin();
   for(; vit != m_views.end(); ++vit)
   {
     (*vit)->setBufferViewToEmpty();

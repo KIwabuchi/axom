@@ -115,6 +115,7 @@
 
 // Sidre project headers
 #include "SidreTypes.hpp"
+#include "Memory.hpp"
 
 namespace axom
 {
@@ -142,6 +143,9 @@ public:
   class const_iterator;
   class iterator_adaptor;
   class const_iterator_adaptor;
+
+  using AllocatorType = metall::manager::allocator_type<void>;
+  using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
 
 public:
   virtual ~ItemCollection() { }
@@ -215,11 +219,12 @@ public:
   using difference_type = IndexType;
   using value_type = typename std::remove_cv<T>::type;
   using reference = T&;
-  using pointer = T*;
+  using pointer = Ptr<VoidPtr, CollectionType>;
   using iterator_category = std::forward_iterator_tag;
 
 public:
-  iterator(CollectionType* coll, bool is_first) : m_collection(coll)
+  iterator(Ptr<VoidPtr, CollectionType> coll, bool is_first)
+    : m_collection(coll)
   {
     SLIC_ASSERT(coll != nullptr);
 
@@ -248,7 +253,7 @@ protected:
   }
 
 private:
-  CollectionType* m_collection;
+  Ptr<VoidPtr, CollectionType> m_collection;
 };
 
 /*!
@@ -269,11 +274,12 @@ public:
   using difference_type = IndexType;
   using value_type = typename std::remove_cv<T>::type;
   using reference = const T&;
-  using pointer = const T*;
+  using pointer = Ptr<VoidPtr, const CollectionType>;
   using iterator_category = std::forward_iterator_tag;
 
 public:
-  const_iterator(const CollectionType* coll, bool is_first) : m_collection(coll)
+  const_iterator(Ptr<VoidPtr, const CollectionType> coll, bool is_first)
+    : m_collection(coll)
   {
     SLIC_ASSERT(coll != nullptr);
 
@@ -302,7 +308,7 @@ protected:
   }
 
 private:
-  const CollectionType* m_collection;
+  Ptr<VoidPtr, const CollectionType> m_collection;
 };
 
 /*!
@@ -315,7 +321,7 @@ public:
   using CollectionType = ItemCollection<T>;
 
 public:
-  iterator_adaptor(CollectionType* coll) : m_collection(coll) { }
+  iterator_adaptor(Ptr<VoidPtr, CollectionType> coll) : m_collection(coll) { }
 
   std::size_t size() const
   {
@@ -334,7 +340,7 @@ public:
   }
 
 private:
-  CollectionType* m_collection {nullptr};
+  Ptr<VoidPtr, CollectionType> m_collection {nullptr};
 };
 
 /*!
@@ -347,7 +353,9 @@ public:
   using CollectionType = ItemCollection<T>;
 
 public:
-  const_iterator_adaptor(const CollectionType* coll) : m_collection(coll) { }
+  const_iterator_adaptor(const Ptr<VoidPtr, CollectionType> coll)
+    : m_collection(coll)
+  { }
 
   std::size_t size() const
   {
@@ -361,7 +369,7 @@ public:
   const_iterator cend() const { return const_iterator(m_collection, true); }
 
 private:
-  const CollectionType* m_collection {nullptr};
+  const Ptr<VoidPtr, CollectionType> m_collection {nullptr};
 };
 
 } /* end namespace sidre */
