@@ -17,8 +17,7 @@
 #include "axom/slic/streams/GenericOutputStream.hpp"
 
 // Sidre component headers
-#include "IndexedCollection.hpp"
-#include "MapCollection.hpp"
+#include "ItemCollectionUmbrella.hpp"
 #include "Buffer.hpp"
 #include "Group.hpp"
 #include "Attribute.hpp"
@@ -90,9 +89,12 @@ DataStore::DataStore(const AllocatorType& alloc)
   , m_allocator(alloc)
 {
   m_buffer_coll =
-    rebind_construct<AllocatorType, BufferCollection>(m_allocator, m_allocator);
+    rebind_construct<AllocatorType, BufferCollection>(m_allocator,
+                                                      BufferCollection::store_type::index,
+                                                      m_allocator);
   m_attribute_coll =
     rebind_construct<AllocatorType, AttributeCollection>(m_allocator,
+                                                         AttributeCollection::store_type::map,
                                                          m_allocator);
 
   if(!axom::slic::isInitialized())

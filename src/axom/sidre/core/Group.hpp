@@ -43,7 +43,7 @@
 // Sidre headers
 #include "SidreTypes.hpp"
 #include "View.hpp"
-#include "ItemCollection.hpp"
+#include "ItemCollectionUmbrella.hpp"
 #include "Memory.hpp"
 
 namespace axom
@@ -54,9 +54,7 @@ class Buffer;
 class Group;
 class DataStore;
 template <typename TYPE>
-class ItemCollection;
-template <typename TYPE>
-class MapCollection;
+class ItemCollectionUmbrella;
 
 /*!
  * \class Group
@@ -142,8 +140,8 @@ public:
   friend class DataStore;
   friend class View;
 
-  using ViewCollection = ItemCollection<View>;
-  using GroupCollection = ItemCollection<Group>;
+  using ViewCollectionType = ItemCollectionUmbrella<View>;
+  using GroupCollectionType = ItemCollectionUmbrella<Group>;
 
   using AllocatorType = metall::manager::allocator_type<void>;
   using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
@@ -1032,22 +1030,22 @@ public:
   /*!
    * \brief Returns an adaptor to support iterating the collection of views
    */
-  typename ViewCollection::iterator_adaptor views();
+  typename ViewCollectionType::iterator_adaptor views();
 
   /*!
    * \brief Returns a const adaptor to support iterating the collection of views
    */
-  typename ViewCollection::const_iterator_adaptor views() const;
+  typename ViewCollectionType::const_iterator_adaptor views() const;
 
   /*!
    * \brief Returns an adaptor to support iterating the collection of groups
    */
-  typename GroupCollection::iterator_adaptor groups();
+  typename GroupCollectionType::iterator_adaptor groups();
 
   /*!
    * \brief Returns a const adaptor to support iterating the collection of groups
    */
-  typename GroupCollection::const_iterator_adaptor groups() const;
+  typename GroupCollectionType::const_iterator_adaptor groups() const;
 
   //@}
 private:
@@ -1058,7 +1056,7 @@ private:
    * for its collection of views
    * \sa isUsingMap, isUsingList
    */
-  MapCollection<View>* getNamedViews();
+  ViewCollectionType* getNamedViews();
 
   /*!
    * \brief Casts the views ItemCollection to a const (named) MapCollection
@@ -1067,7 +1065,7 @@ private:
    * for its collection of views
    * \sa isUsingMap, isUsingList
    */
-  const MapCollection<View>* getNamedViews() const;
+  const ViewCollectionType* getNamedViews() const;
 
   /*!
    * \brief Casts the group ItemCollection to a (named) MapCollection
@@ -1076,7 +1074,7 @@ private:
    * for its collection of groups
    * \sa isUsingMap, isUsingList
    */
-  MapCollection<Group>* getNamedGroups();
+  GroupCollectionType* getNamedGroups();
 
   /*!
    * \brief Casts the group ItemCollection to a const (named) MapCollection
@@ -1085,7 +1083,7 @@ private:
    * for its collection of groups
    * \sa isUsingMap, isUsingList
    */
-  const MapCollection<Group>* getNamedGroups() const;
+  const GroupCollectionType* getNamedGroups() const;
 
   /*!
    * \brief Method to (recursively) accumulate information about data in
@@ -1931,10 +1929,10 @@ private:
   AXOM_SIDRE_EXPORT static const char s_path_delimiter;
 
   /// Collection of Views
-  Ptr<VoidPtr, ViewCollection> m_view_coll;
+  Ptr<VoidPtr, ViewCollectionType> m_view_coll;
 
   /// Collection of child Groups
-  Ptr<VoidPtr, GroupCollection> m_group_coll;
+  Ptr<VoidPtr, GroupCollectionType> m_group_coll;
 
 #ifdef AXOM_USE_UMPIRE
   int m_default_allocator_id;

@@ -32,9 +32,8 @@
 // Sidre project headers
 #include "Attribute.hpp"
 #include "SidreTypes.hpp"
-#include "ItemCollection.hpp"
+#include "ItemCollectionUmbrella.hpp"
 #include "IndexedCollection.hpp"
-#include "MapCollection.hpp"
 #include "Memory.hpp"
 
 namespace axom
@@ -48,7 +47,7 @@ template <typename TYPE>
 class IndexedCollection;
 
 template <typename TYPE>
-class MapCollection;
+class ItemCollectionUmbrella;
 
 /*!
  * \class DataStore
@@ -64,8 +63,8 @@ class MapCollection;
 class DataStore
 {
 public:
-  using AttributeCollection = MapCollection<Attribute>;
-  using BufferCollection = IndexedCollection<Buffer>;
+  using AttributeCollection = ItemCollectionUmbrella<Attribute>;
+  using BufferCollection = ItemCollectionUmbrella<Buffer>;
 
   using AllocatorType = metall::manager::allocator_type<void>;
   using VoidPtr = Ptr<typename AllocatorType::pointer, void>;

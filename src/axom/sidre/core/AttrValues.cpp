@@ -101,7 +101,7 @@ bool AttrValues::createNode(IndexType iattr)
 {
   if(m_values == nullptr)
   {
-    m_values = new(std::nothrow) Values();
+    m_values = rebind_construct<AllocatorType, Values>(m_alloc, m_alloc);
   }
 
   if(static_cast<std::size_t>(iattr) >= m_values->size())
@@ -258,7 +258,7 @@ IndexType AttrValues::getNextValidAttrValueIndex(IndexType idx) const
  *
  *************************************************************************
  */
-AttrValues::AttrValues() : m_values(nullptr) { }
+AttrValues::AttrValues(const AllocatorType& alloc) : m_values(nullptr), m_alloc(alloc) { }
 
 /*
  *************************************************************************
@@ -271,7 +271,7 @@ AttrValues::~AttrValues()
 {
   if(m_values != nullptr)
   {
-    delete m_values;
+    rebind_deallocate(m_alloc, m_values);
     m_values = nullptr;
   }
 }

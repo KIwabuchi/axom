@@ -333,7 +333,7 @@ void Buffer::importFrom(conduit::Node& buffer_holder)
 Buffer::Buffer(IndexType uid, const AllocatorType& alloc)
   : m_index(uid)
   , m_views(alloc)
-  , m_node()
+  , m_node(alloc)
 { }
 
 /*
@@ -424,8 +424,8 @@ void Buffer::detachFromAllViews()
  */
 void* Buffer::allocateBytes(IndexType num_bytes, int allocID)
 {
-  allocID = getValidAllocatorID(allocID);
-  return axom::allocate<std::int8_t>(num_bytes, allocID);
+  AllocatorType alloc = m_views.get_allocator();
+  return rebind_alloc<AllocatorType, std::byte>(alloc, num_bytes);
 }
 
 /*
@@ -437,9 +437,8 @@ void* Buffer::allocateBytes(IndexType num_bytes, int allocID)
  */
 void Buffer::releaseBytes(void* ptr)
 {
-  // Pointer type here should always match new call in allocateBytes.
-  std::int8_t* ptr_copy = static_cast<std::int8_t*>(ptr);
-  axom::deallocate(ptr_copy);
+  AllocatorType alloc = m_views.get_allocator();
+  return rebind_deallocate(alloc, ptr, getTotalBytes());
 }
 
 } /* end namespace sidre */

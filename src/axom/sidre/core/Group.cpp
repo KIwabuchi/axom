@@ -16,8 +16,7 @@
 #include "axom/core/Path.hpp"
 
 // Sidre headers
-#include "ListCollection.hpp"
-#include "MapCollection.hpp"
+#include "ItemCollectionUmbrella.hpp"
 #include "Buffer.hpp"
 #include "DataStore.hpp"
 
@@ -55,37 +54,37 @@ const std::vector<std::string> Group::s_io_protocols = {
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-MapCollection<View>* Group::getNamedViews()
+Group::ViewCollectionType* Group::getNamedViews()
 {
   SLIC_ASSERT_MSG(this->isUsingMap(),
                   "Invalid cast: The views in this group do not have names");
 
-  return static_cast<MapCollection<View>*>(metall::to_raw_pointer(m_view_coll));
+  return static_cast<Group::ViewCollectionType*>(metall::to_raw_pointer(m_view_coll));
 }
 
-const MapCollection<View>* Group::getNamedViews() const
+const Group::ViewCollectionType* Group::getNamedViews() const
 {
   SLIC_ASSERT_MSG(this->isUsingMap(),
                   "Invalid cast: The views in this group do not have names");
 
-  return static_cast<const MapCollection<View>*>(
+  return static_cast<const Group::ViewCollectionType*>(
     metall::to_raw_pointer(m_view_coll));
 }
 
-MapCollection<Group>* Group::getNamedGroups()
+Group::GroupCollectionType* Group::getNamedGroups()
 {
   SLIC_ASSERT_MSG(this->isUsingMap(),
                   "Invalid cast: The groups in this group do not have names");
 
-  return static_cast<MapCollection<Group>*>(metall::to_raw_pointer(m_group_coll));
+  return static_cast<Group::GroupCollectionType*>(metall::to_raw_pointer(m_group_coll));
 }
 
-const MapCollection<Group>* Group::getNamedGroups() const
+const Group::GroupCollectionType* Group::getNamedGroups() const
 {
   SLIC_ASSERT_MSG(this->isUsingMap(),
                   "Invalid cast: The groups in this group do not have names");
 
-  return static_cast<const MapCollection<Group>*>(
+  return static_cast<const Group::GroupCollectionType*>(
     metall::to_raw_pointer(m_group_coll));
 }
 
@@ -2333,19 +2332,23 @@ Group::Group(const std::string& name,
   if(is_list)
   {
     m_view_coll =
-      rebind_construct<AllocatorType, ListCollection<View>>(m_allocator,
+      rebind_construct<AllocatorType, ItemCollectionUmbrella<View>>(m_allocator,
+                                 ItemCollectionUmbrella<View>::store_type::list,
                                                             m_allocator);
     m_group_coll =
-      rebind_construct<AllocatorType, ListCollection<Group>>(m_allocator,
+      rebind_construct<AllocatorType, ItemCollectionUmbrella<Group>>(m_allocator,
+                                 ItemCollectionUmbrella<Group>::store_type::list,
                                                              m_allocator);
   }
   else
   {
     m_view_coll =
-      rebind_construct<AllocatorType, MapCollection<View>>(m_allocator,
+      rebind_construct<AllocatorType, ItemCollectionUmbrella<View>>(m_allocator,
+                                  ItemCollectionUmbrella<View>::store_type::map,
                                                            m_allocator);
     m_group_coll =
-      rebind_construct<AllocatorType, MapCollection<Group>>(m_allocator,
+      rebind_construct<AllocatorType, ItemCollectionUmbrella<Group>>(m_allocator,
+                                  ItemCollectionUmbrella<Group>::store_type::map,
                                                             m_allocator);
   }
 }
@@ -3181,7 +3184,7 @@ IndexType Group::getNextValidViewIndex(IndexType idx) const
 /*!
  * \brief Returns an adaptor to support iterating the collection of views
  */
-typename Group::ViewCollection::iterator_adaptor Group::views()
+typename Group::ViewCollectionType::iterator_adaptor Group::views()
 {
   return m_view_coll->getIteratorAdaptor();
 }
@@ -3189,7 +3192,7 @@ typename Group::ViewCollection::iterator_adaptor Group::views()
 /*!
  * \brief Returns a const adaptor to support iterating the collection of views
  */
-typename Group::ViewCollection::const_iterator_adaptor Group::views() const
+typename Group::ViewCollectionType::const_iterator_adaptor Group::views() const
 {
   return m_view_coll->getIteratorAdaptor();
 }
@@ -3197,7 +3200,7 @@ typename Group::ViewCollection::const_iterator_adaptor Group::views() const
 /*!
  * \brief Returns an adaptor to support iterating the collection of groups
  */
-typename Group::GroupCollection::iterator_adaptor Group::groups()
+typename Group::GroupCollectionType::iterator_adaptor Group::groups()
 {
   return m_group_coll->getIteratorAdaptor();
 }
@@ -3205,7 +3208,7 @@ typename Group::GroupCollection::iterator_adaptor Group::groups()
 /*!
  * \brief Returns a const adaptor to support iterating the collection of groups
  */
-typename Group::GroupCollection::const_iterator_adaptor Group::groups() const
+typename Group::GroupCollectionType::const_iterator_adaptor Group::groups() const
 {
   return m_group_coll->getIteratorAdaptor();
 }

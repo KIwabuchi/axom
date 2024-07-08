@@ -67,7 +67,7 @@ int main(int argc, char** argv)
   }
 
   {
-    metall::manager mgr(metall::open_read_only, "./metall_ds");
+    metall::manager mgr(metall::open_only, "./metall_ds");
     // STEP 3: read the data from the file into a new DataStore
     sidre::DataStore* dataStore2 = mgr.find<sidre::DataStore>("d1").first;
     sidre::Group* root2 = dataStore2->getRoot();
