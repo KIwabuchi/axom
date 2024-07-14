@@ -23,6 +23,17 @@ inline T* rebind_alloc(A& alloc, std::size_t n = 1)
   return metall::to_raw_pointer(ptr);
 }
 
+template <typename A, typename T>
+inline T* rebind_realloc(A& alloc, T* p, std::size_t old_n, std::size_t n)
+{
+  using AllocT = RebindAlloc<A, T>;
+  AllocT a(alloc);
+  auto ptr = std::allocator_traits<AllocT>::allocate(a, n);
+  std::memcpy(metall::to_raw_pointer(ptr), p, std::min(old_n, n) * sizeof(T));
+  std::allocator_traits<AllocT>::deallocate(a, metall::to_raw_pointer(ptr), old_n);
+  return metall::to_raw_pointer(ptr);
+}
+
 template <typename A, typename P>
 inline void rebind_deallocate(A& alloc, P ptr, std::size_t n = 1)
 {

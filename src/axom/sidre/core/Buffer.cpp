@@ -139,8 +139,9 @@ Buffer* Buffer::reallocate(IndexType num_elems)
   DataType dtype(m_node.dtype());
   dtype.set_number_of_elements(num_elems);
   IndexType new_size = dtype.strided_bytes();
-  void* new_data_ptr =
-    axom::reallocate(static_cast<std::uint8_t*>(old_data_ptr), new_size);
+
+  AllocatorType alloc = m_views.get_allocator();
+  void* new_data_ptr = rebind_realloc(alloc, old_data_ptr, getTotalBytes(), new_size);
 
   if(num_elems == 0 || new_data_ptr != nullptr)
   {

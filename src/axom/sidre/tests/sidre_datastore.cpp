@@ -54,7 +54,7 @@ TEST(sidre_datastore, buffer_info)
   IndexType num_buffers_detached_chk = 0;
   IndexType num_bytes_allocated_chk = 0;
 
-  {
+  { // Create
     metall::manager mgr(metall::create_only, "./metall_ds");
     DataStore* ds = mgr.construct<DataStore>("d1")(mgr.get_allocator<std::byte>());
   }

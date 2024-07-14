@@ -60,8 +60,6 @@
 /*
  * Compiler defines for programming models
  */
-#cmakedefine AXOM_USE_CUDA
-#cmakedefine AXOM_USE_HIP
 #cmakedefine AXOM_USE_MPI
 #cmakedefine AXOM_USE_MPI3
 #cmakedefine AXOM_USE_MPIF_HEADER
@@ -77,13 +75,11 @@
 #cmakedefine AXOM_USE_CLI11
 #cmakedefine AXOM_USE_CONDUIT
 #cmakedefine AXOM_USE_FMT
-#cmakedefine AXOM_USE_HDF5
 #cmakedefine AXOM_USE_LUA
 #cmakedefine AXOM_USE_MFEM
 #cmakedefine AXOM_USE_RAJA
 #cmakedefine AXOM_USE_SCR
 #cmakedefine AXOM_USE_SOL
-#cmakedefine AXOM_USE_UMPIRE
 
 /*
  * Compiler defines for third-party executables

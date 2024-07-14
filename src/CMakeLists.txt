@@ -20,6 +20,15 @@ if (ENABLE_FORTRAN)
    enable_language(Fortran)
 endif()
 
+find_package(Boost 1.80 REQUIRED)
+include(FetchContent)
+FetchContent_Declare(
+        Metall
+        GIT_REPOSITORY https://github.com/LLNL/metall.git
+        GIT_TAG master
+)
+FetchContent_MakeAvailable(Metall)
+
 #------------------------------------------------------------------------------
 # Initialize BLT build system
 #------------------------------------------------------------------------------
@@ -78,7 +87,7 @@ if (“${PROJECT_SOURCE_DIR}” STREQUAL “${CMAKE_SOURCE_DIR}”)
     endforeach()
 
     set(BLT_REQUIRED_CLANGFORMAT_VERSION  "10" CACHE STRING "")
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/.clang-tidy 
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/.clang-tidy
                    ${CMAKE_CURRENT_BINARY_DIR}/.clang-tidy
                    COPYONLY)
 
@@ -132,6 +141,15 @@ endif()
 #------------------------------------------------------------------------------
 # Add source directories
 #------------------------------------------------------------------------------
+include(FetchContent)
+find_package(Boost 1.80 REQUIRED)
+FetchContent_Declare(
+        Metall
+        GIT_REPOSITORY https://github.com/LLNL/metall.git
+        GIT_TAG master
+)
+FetchContent_MakeAvailable(Metall)
+
 add_subdirectory(thirdparty)
 
 include(cmake/AxomVersion.cmake)
