@@ -25,7 +25,8 @@ constexpr IndexType ZERO = 0;
 
 TEST(sidre_buffer, create_buffers)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>("ds")(mgr.get_allocator<std::byte>());
   EXPECT_EQ(0u, ds->getNumBuffers());
 
   // Create two buffers
@@ -55,14 +56,15 @@ TEST(sidre_buffer, create_buffers)
   EXPECT_EQ(2u, ds->getNumBuffers());
   EXPECT_EQ(1, dbuff_1b->getIndex());
 
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
 
 TEST(sidre_buffer, create_buffer_with_description)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>("d1")(mgr.get_allocator<std::byte>());
   Buffer* dbuff = ds->createBuffer(INT_ID, 10);
   dbuff->allocate();
 
@@ -81,14 +83,15 @@ TEST(sidre_buffer, create_buffer_with_description)
 
   ds->print();
 
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
 
 TEST(sidre_buffer, alloc_buffer_for_int_array)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>("d1")(mgr.get_allocator<std::byte>());
   Buffer* dbuff = ds->createBuffer();
 
   dbuff->allocate(INT_ID, 10);
@@ -114,14 +117,15 @@ TEST(sidre_buffer, alloc_buffer_for_int_array)
 
   dbuff->deallocate();
 
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
 
 TEST(sidre_buffer, init_buffer_for_int_array)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>("d1")(mgr.get_allocator<std::byte>());
   Buffer* dbuff = ds->createBuffer();
 
   dbuff->allocate(INT_ID, 10);
@@ -140,14 +144,15 @@ TEST(sidre_buffer, init_buffer_for_int_array)
   dbuff->print();
 
   ds->print();
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
 
 TEST(sidre_buffer, realloc_buffer)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>("d1")(mgr.get_allocator<std::byte>());
   Buffer* dbuff = ds->createBuffer();
 
   dbuff->allocate(INT_ID, 5);
@@ -198,14 +203,15 @@ TEST(sidre_buffer, realloc_buffer)
   //  dbuff->print();
 
   //  ds->print();
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
 
 TEST(sidre_buffer, create_buffer_view)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>("d1")(mgr.get_allocator<std::byte>());
   Group* root = ds->getRoot();
 
   const IndexType len = 11;
@@ -275,14 +281,15 @@ TEST(sidre_buffer, create_buffer_view)
       EXPECT_EQ(idata_chk[ii], idata[ii]);
     }
   }
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
 
 TEST(sidre_buffer, with_multiple_views)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>("d1")(mgr.get_allocator<std::byte>());
   Group* root = ds->getRoot();
   Buffer* dbuff;
   View *dv1, *dv2;
@@ -311,13 +318,14 @@ TEST(sidre_buffer, with_multiple_views)
   // Buffer has been destroyed since there are no more attached views
   EXPECT_TRUE(ds->getBuffer(idx) == nullptr);
 
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
 TEST(sidre_buffer, move_buffer)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>("d1")(mgr.get_allocator<std::byte>());
   Group* root = ds->getRoot();
   Buffer *dbuff, *dbuff2;
   View *dv1, *dv2;
@@ -337,13 +345,14 @@ TEST(sidre_buffer, move_buffer)
   EXPECT_EQ(1u, ds->getNumBuffers());
   EXPECT_EQ(1, dbuff->getNumViews());
 
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
 TEST(sidre_buffer, destroy_all_buffers)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>("d1")(mgr.get_allocator<std::byte>());
 
   ds->createBuffer();
   ds->createBuffer();
@@ -354,7 +363,7 @@ TEST(sidre_buffer, destroy_all_buffers)
   ds->destroyAllBuffers();
   EXPECT_EQ(0u, ds->getNumBuffers());
 
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 #ifdef AXOM_USE_UMPIRE
