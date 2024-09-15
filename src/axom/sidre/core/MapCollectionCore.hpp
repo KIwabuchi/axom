@@ -126,6 +126,7 @@
 // Sidre project headers
 #include "SidreTypes.hpp"
 #include "Memory.hpp"
+#include "MetallContainer.hpp"
 
 #if defined(AXOM_USE_SPARSEHASH)
   #error "AXOM_USE_SPARSEHASH is not supported"
@@ -166,7 +167,7 @@ class MapCollectionCore
 {
 public:
   using value_type = T;
-  using AllocatorType = metall::manager::allocator_type<void>;
+  using AllocatorType = metall::manager::fallback_allocator<void>;
   using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
 
 public:
@@ -285,19 +286,19 @@ public:
   }
 
 private:
-  metall::container::vector<Ptr<VoidPtr, T>> m_items;
-  metall::container::stack<IndexType> m_free_ids;
+  metall_container::vector<Ptr<VoidPtr, T>> m_items;
+  metall_container::stack<IndexType> m_free_ids;
 
 #if defined(AXOM_USE_SPARSEHASH)
   using MapType =
-    axom::google::dense_hash_map<metall::container::string, IndexType>;
+    axom::google::dense_hash_map<metall_container::string, IndexType>;
 #else
-  using MapType = metall::container::string_key_store<IndexType>;
+  using MapType = metall_container::string_key_store<IndexType>;
 #endif
 
   MapType m_name2idx_map;
 #if defined(AXOM_USE_SPARSEHASH)
-  metall::container::string m_empty_key;
+  metall_container::string m_empty_key;
 #endif
 };
 

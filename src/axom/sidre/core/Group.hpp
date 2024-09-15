@@ -45,6 +45,7 @@
 #include "View.hpp"
 #include "ItemCollectionUmbrella.hpp"
 #include "Memory.hpp"
+#include "MetallContainer.hpp"
 
 namespace axom
 {
@@ -143,7 +144,7 @@ public:
   using ViewCollectionType = ItemCollectionUmbrella<View>;
   using GroupCollectionType = ItemCollectionUmbrella<Group>;
 
-  using AllocatorType = metall::manager::allocator_type<void>;
+  using AllocatorType = metall::manager::fallback_allocator<void>;
   using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
 
   //@{
@@ -1911,7 +1912,7 @@ private:
   int getValidAllocatorID(int allocatorID);
 
   /// Name of this Group object.
-  metall::container::string m_name;
+  metall_container::string m_name;
 
   /// Index of this Group object within m_parent.
   IndexType m_index;

@@ -126,7 +126,7 @@ class ListCollectionCore
 {
 public:
   using value_type = T;
-  using AllocatorType = metall::manager::allocator_type<void>;
+  using AllocatorType = metall::manager::fallback_allocator<void>;
   using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
 
 public:
@@ -191,10 +191,10 @@ public:
   }
 
 private:
-  metall::container::vector<Ptr<VoidPtr, T>> m_items;
-  metall::container::stack<IndexType> m_free_ids;
+  metall_container::vector<Ptr<VoidPtr, T>> m_items;
+  metall_container::stack<IndexType> m_free_ids;
 
-  metall::container::list<IndexType> m_index_list;
+  metall_container::list<IndexType> m_index_list;
 };
 
 template <typename T>

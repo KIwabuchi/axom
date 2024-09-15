@@ -147,7 +147,7 @@ public:
   class iterator_adaptor;
   class const_iterator_adaptor;
 
-  using AllocatorType = metall::manager::allocator_type<void>;
+  using AllocatorType = metall::manager::fallback_allocator<void>;
   using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
 
   using IndexedCollectionType = IndexedCollectionCore<T>;

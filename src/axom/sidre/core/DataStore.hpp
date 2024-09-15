@@ -35,6 +35,7 @@
 #include "ItemCollectionUmbrella.hpp"
 #include "IndexedCollection.hpp"
 #include "Memory.hpp"
+#include "MetallContainer.hpp"
 
 namespace axom
 {
@@ -66,7 +67,7 @@ public:
   using AttributeCollection = ItemCollectionUmbrella<Attribute>;
   using BufferCollection = ItemCollectionUmbrella<Buffer>;
 
-  using AllocatorType = metall::manager::allocator_type<void>;
+  using AllocatorType = metall::manager::fallback_allocator<void>;
   using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
 
 public:
@@ -76,7 +77,7 @@ public:
    * The ctor also initializes SLIC logging environment if it is not already
    * initialized.
    */
-  DataStore(const AllocatorType& alloc);
+  DataStore(const AllocatorType& alloc = AllocatorType());
 
   /*!
    * \brief Dtor destroys all contents of the DataStore, including data held
@@ -563,7 +564,7 @@ private:
   bool m_need_to_finalize_slic;
 
   /// Details of the most recent Conduit error.  Length > 0 indicates an error occurred.
-  mutable metall::container::string m_conduit_errors;
+  mutable metall_container::string m_conduit_errors;
 
   AllocatorType m_allocator;
 };

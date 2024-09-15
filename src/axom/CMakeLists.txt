@@ -34,14 +34,14 @@ axom_add_component(COMPONENT_NAME sidre  DEFAULT_STATE ${AXOM_ENABLE_ALL_COMPONE
 axom_add_component(COMPONENT_NAME mint   DEFAULT_STATE ${AXOM_ENABLE_ALL_COMPONENTS})
 axom_add_component(COMPONENT_NAME spin   DEFAULT_STATE ${AXOM_ENABLE_ALL_COMPONENTS})
 axom_add_component(COMPONENT_NAME inlet  DEFAULT_STATE ${AXOM_ENABLE_ALL_COMPONENTS})
-axom_add_component(COMPONENT_NAME klee   DEFAULT_STATE ${AXOM_ENABLE_ALL_COMPONENTS})
-axom_add_component(COMPONENT_NAME quest  DEFAULT_STATE ${AXOM_ENABLE_ALL_COMPONENTS})
-axom_add_component(COMPONENT_NAME multimat DEFAULT_STATE ${AXOM_ENABLE_ALL_COMPONENTS})
+# axom_add_component(COMPONENT_NAME klee   DEFAULT_STATE ${AXOM_ENABLE_ALL_COMPONENTS})
+# axom_add_component(COMPONENT_NAME quest  DEFAULT_STATE ${AXOM_ENABLE_ALL_COMPONENTS})
+# axom_add_component(COMPONENT_NAME multimat DEFAULT_STATE ${AXOM_ENABLE_ALL_COMPONENTS})
 
 install(TARGETS              ${AXOM_COMPONENTS_ENABLED}
         EXPORT               axom-targets
         DESTINATION          lib)
-install(EXPORT               axom-targets 
+install(EXPORT               axom-targets
         NAMESPACE            axom::
         DESTINATION          lib/cmake)
 
@@ -67,10 +67,10 @@ foreach(_component ${AXOM_COMPONENTS_ENABLED})
     endif()
 
     set(_export_header ${PROJECT_BINARY_DIR}/include/axom/export/${_component}.h)
-    generate_export_header( ${_component} 
+    generate_export_header( ${_component}
                             PREFIX_NAME AXOM_
                             EXPORT_FILE_NAME ${_export_header})
-    install(FILES ${_export_header} 
+    install(FILES ${_export_header}
             DESTINATION include/axom/export )
 endforeach()
 
@@ -97,7 +97,7 @@ endif()
 # If Axom is the main project, set FOLDER property for top-level check targets
 if ("${PROJECT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
     set(_code_check_targets "docs" "doxygen_docs"
-                            "check" "style" 
+                            "check" "style"
                             "clangformat_check" "clangformat_style" )
     foreach(_tgt ${_code_check_targets})
         if(TARGET ${_tgt})

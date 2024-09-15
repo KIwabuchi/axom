@@ -20,12 +20,12 @@
 #include <string>
 
 #include <metall/metall.hpp>
-#include <metall/container/string.hpp>
 
 // Other axom headers
 #include "axom/config.hpp"
 #include "axom/core/Macros.hpp"
 #include "axom/slic/interface/slic.hpp"
+#include "axom/sidre/core/MetallContainer.hpp"
 
 // Sidre project headers
 #include "axom/sidre/core/SidreTypes.hpp"
@@ -43,7 +43,7 @@ namespace sidre
 class Attribute
 {
 public:
-  using AllocatorType = metall::manager::allocator_type<void>;
+  using AllocatorType = metall::manager::fallback_allocator<void>;
 
   /*!
    * Friend declarations to constrain usage via controlled access to
@@ -159,7 +159,7 @@ private:
   //@}
 
   /// Name of this Attribute object.
-  metall::container::string m_name;
+  metall_container::string m_name;
 
   /// Attribute's unique index within DataStore object that created it.
   IndexType m_index;

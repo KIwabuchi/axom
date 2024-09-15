@@ -18,7 +18,6 @@
 #include <vector>
 
 #include <metall/metall.hpp>
-#include <metall/container/vector.hpp>
 
 // Other axom headers
 #include "axom/config.hpp"
@@ -28,7 +27,8 @@
 // Sidre project headers
 #include "axom/sidre/core/Attribute.hpp"
 #include "axom/sidre/core/SidreTypes.hpp"
-#include "Memory.hpp"
+#include "axom/sidre/core/Memory.hpp"
+#include "axom/sidre/core/MetallContainer.hpp"
 
 #ifndef SIDRE_ATTRVALUES_HPP_
   #define SIDRE_ATTRVALUES_HPP_
@@ -66,7 +66,7 @@ class View;
  */
 class AttrValues
 {
-  using AllocatorType = metall::manager::allocator_type<void>;
+  using AllocatorType = metall::manager::fallback_allocator<void>;
   using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
 
 public:
@@ -251,8 +251,7 @@ private:
 
   ///////////////////////////////////////////////////////////////////
   //
-  using Values =
-    metall::container::vector<Node, RebindScpAlloc<AllocatorType, Node>>;
+  using Values = metall_container::vector<Node>;
   ///////////////////////////////////////////////////////////////////
 
   /// Attributes values.

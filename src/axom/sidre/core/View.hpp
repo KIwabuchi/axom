@@ -35,6 +35,7 @@
 #include "axom/sidre/core/SidreTypes.hpp"
 #include "axom/sidre/core/AttrValues.hpp"
 #include "Memory.hpp"
+#include "MetallContainer.hpp"
 
 namespace axom
 {
@@ -101,7 +102,7 @@ public:
   friend class Group;
   friend class Buffer;
 
-  using AllocatorType = metall::manager::allocator_type<void>;
+  using AllocatorType = metall::manager::fallback_allocator<void>;
   using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
 
   //@{
@@ -1506,7 +1507,7 @@ private:
   int getValidAllocatorID(int allocatorID);
 
   /// Name of this View object.
-  metall::container::string m_name;
+  metall_container::string m_name;
 
   /// Index of this View object within m_owning_group.
   IndexType m_index;
@@ -1524,7 +1525,7 @@ private:
   Node m_node;
 
   /// Shape information
-  metall::container::vector<IndexType> m_shape;
+  metall_container::vector<IndexType> m_shape;
 
   /// Pointer to external memory
   VoidPtr m_external_ptr;

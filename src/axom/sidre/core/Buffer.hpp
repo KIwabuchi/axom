@@ -27,6 +27,7 @@
 // Sidre project headers
 #include "SidreTypes.hpp"
 #include "Memory.hpp"
+#include "MetallContainer.hpp"
 
 namespace axom
 {
@@ -67,7 +68,7 @@ public:
   friend class Group;
   friend class View;
 
-  using AllocatorType = metall::manager::allocator_type<void>;
+  using AllocatorType = metall::manager::fallback_allocator<void>;
   using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
 
   //@{
@@ -325,7 +326,7 @@ private:
   IndexType m_index;
 
   /// Container of Views attached to this Buffer.
-  metall::container::set<Ptr<VoidPtr, View>> m_views;
+  metall_container::set<Ptr<VoidPtr, View>> m_views;
 
   /// Conduit Node that holds Buffer data.
   Node m_node;

@@ -97,6 +97,7 @@
 #include "SidreTypes.hpp"
 #include "ItemCollection.hpp"
 #include "Memory.hpp"
+#include "MetallContainer.hpp"
 
 namespace axom
 {
@@ -130,7 +131,7 @@ public:
   using iterator = typename ItemCollection<T>::iterator;
   using const_iterator = typename ItemCollection<T>::const_iterator;
 
-  using AllocatorType = metall::manager::allocator_type<void>;
+  using AllocatorType = metall::manager::fallback_allocator<void>;
   using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
 
 public:
@@ -204,10 +205,10 @@ public:
   const_iterator end() const { return const_iterator(this, false); }
 
 private:
-  metall::container::vector<Ptr<VoidPtr, T>> m_items;
-  metall::container::stack<IndexType> m_free_ids;
+  metall_container::vector<Ptr<VoidPtr, T>> m_items;
+  metall_container::stack<IndexType> m_free_ids;
 
-  metall::container::list<IndexType> m_index_list;
+  metall_container::list<IndexType> m_index_list;
 };
 
 template <typename T>
