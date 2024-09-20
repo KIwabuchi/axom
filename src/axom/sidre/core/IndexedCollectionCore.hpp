@@ -22,7 +22,6 @@
 
 // Sidre project headers
 #include "SidreTypes.hpp"
-#include "ItemCollection.hpp"
 #include "Memory.hpp"
 #include "MetallContainer.hpp"
 
@@ -33,9 +32,9 @@ namespace sidre
 /*!
  *************************************************************************
  *
- * \class IndexedCollection
+ * \class IndexedCollectionCore
  *
- * \brief IndexedCollection is a container for a collection of pointers
+ * \brief IndexedCollectionCore is a container for a collection of pointers
  * to items of template parameter type T, each with a corresponding index
  *
  * Each item has an associated index which will always be in the range
@@ -43,12 +42,10 @@ namespace sidre
  *************************************************************************
  */
 template <typename T>
-class IndexedCollection : public ItemCollection<T>
+class IndexedCollectionCore
 {
 public:
   using value_type = T;
-  using iterator = typename ItemCollection<T>::iterator;
-  using const_iterator = typename ItemCollection<T>::const_iterator;
 
   using AllocatorType = metall::manager::fallback_allocator<void>;
   using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
@@ -59,7 +56,7 @@ public:
   // operator suffice for this class.
   //
 
-  IndexedCollection(const AllocatorType& alloc)
+  IndexedCollectionCore(const AllocatorType& alloc)
     : m_items(alloc)
     , m_free_ids(alloc)
   { }
@@ -214,7 +211,7 @@ public:
 
     SLIC_ASSERT_MSG(
       isInClosedRange(newIndex) && !hasItem(newIndex),
-      "Index " << newIndex << " in IndexedCollection is not a valid empty index");
+      "Index " << newIndex << " in IndexedCollectionCore is not a valid empty index");
 
     return newIndex;
   }
@@ -225,15 +222,6 @@ public:
    * \note This index will always be empty
    */
   IndexType getLastAvailableEmptyIndex() const { return m_items.size(); }
-
-  iterator begin() { return iterator(this, true); }
-  iterator end() { return iterator(this, false); }
-
-  const_iterator cbegin() const { return const_iterator(this, true); }
-  const_iterator cend() const { return const_iterator(this, false); }
-
-  const_iterator begin() const { return const_iterator(this, true); }
-  const_iterator end() const { return const_iterator(this, false); }
 
 private:
   /// Predicate to check if index \a idx is in the half-open range, 0 <= idx < getLastAvailableEmptyIndex()
@@ -257,7 +245,7 @@ private:
 // -----------------------------------------------------------------------------
 
 template <typename T>
-IndexType IndexedCollection<T>::getFirstValidIndex() const
+IndexType IndexedCollectionCore<T>::getFirstValidIndex() const
 {
   IndexType idx = 0;
   while(static_cast<unsigned>(idx) < m_items.size() &&
@@ -269,7 +257,7 @@ IndexType IndexedCollection<T>::getFirstValidIndex() const
 }
 
 template <typename T>
-IndexType IndexedCollection<T>::getNextValidIndex(IndexType idx) const
+IndexType IndexedCollectionCore<T>::getNextValidIndex(IndexType idx) const
 {
   if(idx == InvalidIndex)
   {
@@ -286,7 +274,7 @@ IndexType IndexedCollection<T>::getNextValidIndex(IndexType idx) const
 }
 
 template <typename T>
-T* IndexedCollection<T>::removeItem(IndexType idx)
+T* IndexedCollectionCore<T>::removeItem(IndexType idx)
 {
   if(hasItem(idx))
   {

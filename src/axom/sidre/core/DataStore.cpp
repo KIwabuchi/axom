@@ -17,8 +17,7 @@
 #include "axom/slic/streams/GenericOutputStream.hpp"
 
 // Sidre component headers
-#include "IndexedCollection.hpp"
-#include "MapCollection.hpp"
+#include "ItemCollectionUmbrella.hpp"
 #include "Buffer.hpp"
 #include "Group.hpp"
 #include "Attribute.hpp"
@@ -81,13 +80,23 @@ void DataStoreConduitInfoHandler(const std::string& message,
  *
  *************************************************************************
  */
-DataStore::DataStore()
+DataStore::DataStore(const AllocatorType& alloc)
   : m_RootGroup(nullptr)
-  , m_buffer_coll(new BufferCollection())
-  , m_attribute_coll(new AttributeCollection())
+  , m_buffer_coll(nullptr)
+  , m_attribute_coll(nullptr)
   , m_need_to_finalize_slic(false)
-  , m_conduit_errors()
+  , m_conduit_errors(alloc)
+  , m_allocator(alloc)
 {
+  m_buffer_coll =
+    rebind_construct<AllocatorType, BufferCollection>(m_allocator,
+                                                      BufferCollection::store_type::index,
+                                                      m_allocator);
+  m_attribute_coll =
+    rebind_construct<AllocatorType, AttributeCollection>(m_allocator,
+                                                         AttributeCollection::store_type::map,
+                                                         m_allocator);
+
   if(!axom::slic::isInitialized())
   {
     axom::slic::initialize();
@@ -111,7 +120,9 @@ DataStore::DataStore()
   conduit::utils::set_warning_handler(DataStoreConduitWarningHandler);
   conduit::utils::set_info_handler(DataStoreConduitInfoHandler);
 
-  m_RootGroup = new Group("", this, false);
+  // m_RootGroup = new Group("", this, false);
+  m_RootGroup = rebind_alloc<AllocatorType, Group>(m_allocator);
+  new(metall::to_raw_pointer(m_RootGroup)) Group("", this, false, m_allocator);
   m_RootGroup->m_parent = m_RootGroup;
 };
 
@@ -125,11 +136,11 @@ DataStore::DataStore()
 DataStore::~DataStore()
 {
   // clean up Groups and Views before we destroy Buffers
-  delete m_RootGroup;
+  rebind_deallocate(m_allocator, m_RootGroup);
   destroyAllBuffers();
   destroyAllAttributes();
-  delete m_attribute_coll;
-  delete m_buffer_coll;
+  rebind_deallocate(m_allocator, m_attribute_coll);
+  rebind_deallocate(m_allocator, m_buffer_coll);
 
   if(m_need_to_finalize_slic)
   {
@@ -183,7 +194,7 @@ IndexType DataStore::getNumBuffers() const
 /*
  *************************************************************************
  *
- * Return number of Buffers in the DataStore that are referenced 
+ * Return number of Buffers in the DataStore that are referenced
  * by at least one View
  *
  *************************************************************************
@@ -281,7 +292,8 @@ Buffer* DataStore::getBuffer(IndexType idx) const
 Buffer* DataStore::createBuffer()
 {
   IndexType newIndex = m_buffer_coll->getValidEmptyIndex();
-  Buffer* buff = new Buffer(newIndex);
+  Buffer* buff = rebind_alloc<AllocatorType, Buffer>(m_allocator);
+  new(buff) Buffer(newIndex, m_allocator);
   m_buffer_coll->insertItem(buff, newIndex);
   return buff;
 }
@@ -320,7 +332,7 @@ void DataStore::destroyBuffer(Buffer* buff)
     buff->detachFromAllViews();
     IndexType idx = buff->getIndex();
     m_buffer_coll->removeItem(idx);
-    delete buff;
+    rebind_deallocate(m_allocator, buff);
   }
 }
 
@@ -416,7 +428,8 @@ Attribute* DataStore::createAttributeEmpty(const std::string& name)
     return nullptr;
   }
 
-  Attribute* new_attribute = new(std::nothrow) Attribute(name);
+  Attribute* new_attribute =
+    rebind_construct<AllocatorType, Attribute>(m_allocator, name, m_allocator);
   if(new_attribute == nullptr)
   {
     return nullptr;

@@ -6,11 +6,11 @@
 /*!
  ******************************************************************************
  *
- * \file MapCollection.hpp
+ * \file MapCollectionCore.hpp
  *
- * \brief   Header file for MapCollection.
+ * \brief   Header file for MapCollectionCore.
  *
- *          MapCollection is an implemenation of ItemCollection to
+ *          MapCollectionCore is an implemenation of ItemCollection to
  *          hold a collection of items of a fixed type that can be accessed
  *          accessed by string name or sidre::IndexType.
  *
@@ -114,6 +114,9 @@
 #include <string>
 #include <vector>
 
+#include <metall/container/stack.hpp>
+#include <metall/container/vector.hpp>
+#include <metall/container/string.hpp>
 #include <metall/container/string_key_store.hpp>
 
 // Other axom headers
@@ -122,7 +125,6 @@
 
 // Sidre project headers
 #include "SidreTypes.hpp"
-#include "ItemCollection.hpp"
 #include "Memory.hpp"
 #include "MetallContainer.hpp"
 
@@ -139,7 +141,7 @@ namespace sidre
 {
 ////////////////////////////////////////////////////////////////////////
 //
-// MapCollection keeps an index constant for each item
+// MapCollectionCore keeps an index constant for each item
 // as long as it remains in the collection; i.e., don't shift indices
 // around.  It has the additional benefit that users can hold on to
 // item indices without them being changed without notice.
@@ -149,9 +151,9 @@ namespace sidre
 /*!
  *************************************************************************
  *
- * \class MapCollection
+ * \class MapCollectionCore
  *
- * \brief MapCollection is a container class template for holding
+ * \brief MapCollectionCore is a container class template for holding
  *        a collection of items of template parameter type T
  *
  * \warning Only std::map and std::unordered_map have been tried so far.
@@ -161,13 +163,10 @@ namespace sidre
  *************************************************************************
  */
 template <typename T>
-class MapCollection : public ItemCollection<T>
+class MapCollectionCore
 {
 public:
   using value_type = T;
-  using iterator = typename ItemCollection<T>::iterator;
-  using const_iterator = typename ItemCollection<T>::const_iterator;
-
   using AllocatorType = metall::manager::fallback_allocator<void>;
   using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
 
@@ -176,7 +175,7 @@ public:
   // Default compiler-generated ctor, dtor, copy ctor, and copy assignment
   // operator suffice for this class.
   //
-  MapCollection(const AllocatorType& alloc)
+  MapCollectionCore(const AllocatorType& alloc)
     : m_items(alloc)
     , m_free_ids(alloc)
     , m_name2idx_map(alloc)
@@ -286,15 +285,6 @@ public:
     m_name2idx_map.clear();
   }
 
-  iterator begin() { return iterator(this, true); }
-  iterator end() { return iterator(this, false); }
-
-  const_iterator cbegin() const { return const_iterator(this, true); }
-  const_iterator cend() const { return const_iterator(this, false); }
-
-  const_iterator begin() const { return const_iterator(this, true); }
-  const_iterator end() const { return const_iterator(this, false); }
-
 private:
   metall_container::vector<Ptr<VoidPtr, T>> m_items;
   metall_container::stack<IndexType> m_free_ids;
@@ -313,7 +303,7 @@ private:
 };
 
 template <typename T>
-IndexType MapCollection<T>::getFirstValidIndex() const
+IndexType MapCollectionCore<T>::getFirstValidIndex() const
 {
   IndexType idx = 0;
   while(static_cast<unsigned>(idx) < m_items.size() &&
@@ -325,7 +315,7 @@ IndexType MapCollection<T>::getFirstValidIndex() const
 }
 
 template <typename T>
-IndexType MapCollection<T>::getNextValidIndex(IndexType idx) const
+IndexType MapCollectionCore<T>::getNextValidIndex(IndexType idx) const
 {
   if(idx == InvalidIndex)
   {
@@ -342,7 +332,7 @@ IndexType MapCollection<T>::getNextValidIndex(IndexType idx) const
 }
 
 template <typename T>
-IndexType MapCollection<T>::insertItem(T* item, const std::string& name)
+IndexType MapCollectionCore<T>::insertItem(T* item, const std::string& name)
 {
   bool use_recycled_index = false;
   IndexType idx = m_items.size();
@@ -387,7 +377,7 @@ IndexType MapCollection<T>::insertItem(T* item, const std::string& name)
 }
 
 template <typename T>
-T* MapCollection<T>::removeItem(const std::string& name)
+T* MapCollectionCore<T>::removeItem(const std::string& name)
 {
   T* ret_val = nullptr;
 
@@ -407,17 +397,14 @@ T* MapCollection<T>::removeItem(const std::string& name)
 }
 
 template <typename T>
-T* MapCollection<T>::removeItem(IndexType idx)
+T* MapCollectionCore<T>::removeItem(IndexType idx)
 {
   if(hasItem(idx))
   {
     T* item = removeItem(m_items[idx]->getName());
     return item;
   }
-  else
-  {
-    return nullptr;
-  }
+  return nullptr;
 }
 
 } /* end namespace sidre */

@@ -20,6 +20,10 @@
 #include <string>
 #include <set>
 
+//#include <metall/metall.hpp>
+#include <metall/container/vector.hpp>
+#include <metall/container/string.hpp>
+
 // Other axom headers
 #include "axom/config.hpp"
 #include "axom/core/memory_management.hpp"
@@ -30,6 +34,8 @@
 // Sidre headers
 #include "axom/sidre/core/SidreTypes.hpp"
 #include "axom/sidre/core/AttrValues.hpp"
+#include "Memory.hpp"
+#include "MetallContainer.hpp"
 
 namespace axom
 {
@@ -96,6 +102,9 @@ public:
   friend class Group;
   friend class Buffer;
 
+  using AllocatorType = metall::manager::fallback_allocator<void>;
+  using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
+
   //@{
   //!  @name View query and accessor methods
 
@@ -111,7 +120,7 @@ public:
    *
    * \sa getPath(), getPathName()
    */
-  const std::string& getName() const { return m_name; }
+  const auto& getName() const { return m_name; }
 
   /*!
    * \brief Return path of View's owning Group object.
@@ -139,12 +148,12 @@ public:
   /*!
    * \brief Return pointer to non-const Group that owns View object.
    */
-  Group* getOwningGroup() { return m_owning_group; }
+  Group* getOwningGroup() { return &(*m_owning_group); }
 
   /*!
    * \brief Return pointer to const Group that owns View object.
    */
-  const Group* getOwningGroup() const { return m_owning_group; }
+  const Group* getOwningGroup() const { return &(*m_owning_group); }
 
   /*!
    * \brief Return true if view has a an associated Buffer object
@@ -156,12 +165,12 @@ public:
   /*!
    * \brief Return pointer to non-const Buffer associated with View.
    */
-  Buffer* getBuffer() { return m_data_buffer; }
+  Buffer* getBuffer() { return &(*m_data_buffer); }
 
   /*!
    * \brief Return pointer to const Buffer associated with View.
    */
-  const Buffer* getBuffer() const { return m_data_buffer; }
+  const Buffer* getBuffer() const { return &(*m_data_buffer); }
 
   /*!
    * \brief Return true if view holds external data; false otherwise.
@@ -1320,7 +1329,7 @@ private:
    *  \brief Private ctor that creates a View with given name
    *         which has no data associated with it.
    */
-  View(const std::string& name);
+  View(const std::string& name, const AllocatorType& alloc);
 
   /*!
    * \brief Private copy ctor.
@@ -1535,16 +1544,16 @@ private:
   int getValidAllocatorID(int allocatorID);
 
   /// Name of this View object.
-  std::string m_name;
+  metall_container::string m_name;
 
   /// Index of this View object within m_owning_group.
   IndexType m_index;
 
   /// Group object that owns this View object.
-  Group* m_owning_group;
+  Ptr<VoidPtr, Group> m_owning_group;
 
   /// Buffer associated with this View object.
-  Buffer* m_data_buffer;
+  Ptr<VoidPtr, Buffer> m_data_buffer;
 
   /// Data description (schema) that describes the view's data.
   Schema m_schema;
@@ -1553,10 +1562,10 @@ private:
   Node m_node;
 
   /// Shape information
-  std::vector<IndexType> m_shape;
+  metall_container::vector<IndexType> m_shape;
 
   /// Pointer to external memory
-  void* m_external_ptr;
+  VoidPtr m_external_ptr;
 
   /// State of view.
   State m_state;
@@ -1566,6 +1575,8 @@ private:
 
   /// Attribute Values
   AttrValues m_attr_values;
+
+  AllocatorType m_allocator;
 };
 
 } /* end namespace sidre */

@@ -6,9 +6,9 @@
 /*!
  ******************************************************************************
  *
- * \file ItemCollection.hpp
+ * \file ItemCollectionUmbrella.hpp
  *
- * \brief   Header file for ItemCollection.
+ * \brief   Header file for ItemCollectionUmbrella.
  *
  *          This is a templated abstract base class defining an interface for
  *          classes holding a collection of items of a fixed
@@ -116,6 +116,9 @@
 // Sidre project headers
 #include "SidreTypes.hpp"
 #include "Memory.hpp"
+#include "IndexedCollectionCore.hpp"
+#include "ListCollectionCore.hpp"
+#include "MapCollectionCore.hpp"
 
 namespace axom
 {
@@ -124,16 +127,16 @@ namespace sidre
 /*!
  *************************************************************************
  *
- * \class ItemCollection
+ * \class ItemCollectionUmbrella
  *
- * \brief ItemCollection is an abstract base class template for holding
+ * \brief ItemCollectionUmbrella is an abstract base class template for holding
  *        a collection of items of template parameter type T.  Derived
  *        child classes can determine how to specifically store the items.
  *
  *************************************************************************
  */
 template <typename T>
-class ItemCollection
+class ItemCollectionUmbrella
 {
 public:
   using value_type = T;
@@ -147,8 +150,39 @@ public:
   using AllocatorType = metall::manager::fallback_allocator<void>;
   using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
 
-public:
-  virtual ~ItemCollection() { }
+  using IndexedCollectionType = IndexedCollectionCore<T>;
+  using MapCollectionType = MapCollectionCore<T>;
+  using ListCollectionType = ListCollectionCore<T>;
+
+  enum store_type { invalid, index, map, list };
+
+ public:
+  ItemCollectionUmbrella(const store_type t,
+                         const AllocatorType& alloc)
+   : m_type(t),
+     m_alloc(alloc)
+   {
+    if (m_type == store_type::index) {
+      m_index = rebind_construct<AllocatorType, IndexedCollectionType>(m_alloc, m_alloc);
+    } else if (m_type == store_type::list) {
+      m_list = rebind_construct<AllocatorType, ListCollectionType>(m_alloc, m_alloc);
+    } else if (m_type == store_type::map) {
+      m_map = rebind_construct<AllocatorType, MapCollectionType>(m_alloc, m_alloc);
+    } else {
+      assert(false);
+    }
+  }
+
+  ~ItemCollectionUmbrella() {
+    rebind_deallocate(m_alloc, m_index);
+    m_index = nullptr;
+
+    rebind_deallocate(m_alloc, m_list);
+    m_list = nullptr;
+
+    rebind_deallocate(m_alloc, m_map);
+    m_map = nullptr;
+  }
 
   //
   // Default compiler-generated ctor, dtor, copy ctor, and copy assignment
@@ -156,41 +190,197 @@ public:
   //
 
   ///
-  virtual size_t getNumItems() const = 0;
+  size_t getNumItems() const
+  {
+    if (m_type == store_type::index) {
+      return m_index->getNumItems();
+    } else if (m_type == store_type::list) {
+      return m_list->getNumItems();
+    } else if (m_type == store_type::map) {
+      return m_map->getNumItems();
+    }
+    assert(false);
+  }
 
   ///
-  virtual IndexType getFirstValidIndex() const = 0;
+  IndexType getFirstValidIndex() const
+  {
+    if (m_type == store_type::index) {
+      return m_index->getFirstValidIndex();
+    } else if (m_type == store_type::list) {
+      return m_list->getFirstValidIndex();
+    } else if (m_type == store_type::map) {
+      return m_map->getFirstValidIndex();
+    }
+    assert(false);
+  }
 
   ///
-  virtual IndexType getNextValidIndex(IndexType idx) const = 0;
+  IndexType getNextValidIndex(IndexType idx) const
+  {
+    if (m_type == store_type::index) {
+      return m_index->getNextValidIndex(idx);
+    } else if (m_type == store_type::list) {
+      return m_list->getNextValidIndex(idx);
+    } else if (m_type == store_type::map) {
+      return m_map->getNextValidIndex(idx);
+    }
+    assert(false);
+  }
 
   ///
-  virtual bool hasItem(IndexType idx) const = 0;
+  bool hasItem(IndexType idx) const
+  {
+    if (m_type == store_type::index) {
+      return m_index->hasItem(idx);
+    } else if (m_type == store_type::list) {
+      return m_list->hasItem(idx);
+    } else if (m_type == store_type::map) {
+      return m_map->hasItem(idx);
+    }
+    assert(false);
+  }
+
+  bool hasItem(const std::string& name) const
+  {
+    if (m_type == store_type::map) {
+      return m_map->hasItem(name);
+    }
+    assert(false);
+  }
 
   ///
-  virtual T* getItem(IndexType idx) = 0;
+  T* getItem(IndexType idx)
+  {
+    if (m_type == store_type::index) {
+      return m_index->getItem(idx);
+    } else if (m_type == store_type::list) {
+      return m_list->getItem(idx);
+    } else if (m_type == store_type::map) {
+      return m_map->getItem(idx);
+    }
+    assert(false);
+  }
 
   ///
-  virtual T const* getItem(IndexType idx) const = 0;
+  T const* getItem(IndexType idx) const
+  {
+    if (m_type == store_type::index) {
+      return m_index->getItem(idx);
+    } else if (m_type == store_type::list) {
+      return m_list->getItem(idx);
+    } else if (m_type == store_type::map) {
+      return m_map->getItem(idx);
+    }
+    assert(false);
+  }
+
+  T* getItem(const std::string& name)
+  {
+    if (m_type == store_type::map) {
+      return m_map->getItem(name);
+    }
+    assert(false);
+  }
+
+  T const* getItem(const std::string& name) const
+  {
+    if (m_type == store_type::map) {
+      return m_map->getItem(name);
+    }
+    assert(false);
+  }
 
   ///
-  virtual IndexType insertItem(T* item, const std::string& name = "") = 0;
+  const std::string& getItemName(IndexType idx) const
+  {
+    if (m_type == store_type::map) {
+      return m_map->getItemName(idx);
+    }
+    assert(false);
+  }
 
   ///
-  virtual T* removeItem(IndexType idx) = 0;
+  IndexType getItemIndex(const std::string& name) const
+  {
+    if (m_type == store_type::map) {
+      return m_map->getItemIndex(name);
+    }
+    assert(false);
+  }
 
   ///
-  virtual void removeAllItems() = 0;
+  IndexType insertItem(T* item, const std::string& name = "")
+  {
+    if (m_type == store_type::index) {
+      return m_index->insertItem(item, name);
+    } else if (m_type == store_type::list) {
+      return m_list->insertItem(item, name);
+    } else if (m_type == store_type::map) {
+      return m_map->insertItem(item, name);
+    }
+    assert(false);
+  }
+
+  IndexType insertItem(T* item, IndexType idx)
+  {
+    if (m_type == store_type::index) {
+      return m_index->insertItem(item, idx);
+    }
+    assert(false);
+  }
+
+  ///
+  T* removeItem(IndexType idx)
+  {
+    if (m_type == store_type::index) {
+      return m_index->removeItem(idx);
+    } else if (m_type == store_type::list) {
+      return m_list->removeItem(idx);
+    } else if (m_type == store_type::map) {
+      return m_map->removeItem(idx);
+    }
+    assert(false);
+  }
+
+  T* removeItem(const std::string& name)
+  {
+    if (m_type == store_type::map) {
+      return m_map->removeItem(name);
+    }
+    assert(false);
+  }
+
+  ///
+  void removeAllItems()
+  {
+    if (m_type == store_type::index) {
+      return m_index->removeAllItems();
+    } else if (m_type == store_type::list) {
+      return m_list->removeAllItems();
+    } else if (m_type == store_type::map) {
+      return m_map->removeAllItems();
+    }
+    assert(false);
+  }
+
+  IndexType getValidEmptyIndex()
+  {
+    if (m_type == store_type::index) {
+      return m_index->getValidEmptyIndex();
+    }
+    assert(false);
+  }
 
 public:
-  virtual iterator begin() = 0;
-  virtual iterator end() = 0;
+  iterator begin() { return iterator(this, true); }
+  iterator end() { return iterator(this, false); }
 
-  virtual const_iterator cbegin() const = 0;
-  virtual const_iterator cend() const = 0;
+  const_iterator cbegin() const { return const_iterator(this, true); }
+  const_iterator cend() const { return const_iterator(this, false); }
 
-  virtual const_iterator begin() const = 0;
-  virtual const_iterator end() const = 0;
+  const_iterator begin() const { return const_iterator(this, true); }
+  const_iterator end() const { return const_iterator(this, false); }
 
   /// Returns an adaptor wrapping this collection in support of iteration
   iterator_adaptor getIteratorAdaptor() { return iterator_adaptor(this); }
@@ -200,17 +390,25 @@ public:
   {
     return const_iterator_adaptor(this);
   }
+
+ private:
+  store_type m_type{store_type::invalid};
+  AllocatorType m_alloc;
+  Ptr<VoidPtr, IndexedCollectionType> m_index{nullptr};
+  Ptr<VoidPtr, ListCollectionType> m_list{nullptr};
+  Ptr<VoidPtr, MapCollectionType> m_map{nullptr};
 };
 
 /*!
- * \brief An std-compliant forward iterator for an ItemCollection
+ * \brief An std-compliant forward iterator for an ItemCollectionUmbrella
  */
 template <typename T>
-class ItemCollection<T>::iterator : public IteratorBase<iterator, IndexType>
+
+class ItemCollectionUmbrella<T>::iterator : public IteratorBase<iterator, IndexType>
 {
 private:
   using BaseType = IteratorBase<iterator, IndexType>;
-  using CollectionType = ItemCollection<T>;
+  using CollectionType = ItemCollectionUmbrella<T>;
 
 public:
   // Iterator traits required to satisfy LegacyRandomAccessIterator concept
@@ -257,15 +455,15 @@ private:
 };
 
 /*!
- * \brief An std-compliant forward iterator for a const ItemCollection
+ * \brief An std-compliant forward iterator for a const ItemCollectionUmbrella
  */
 template <typename T>
-class ItemCollection<T>::const_iterator
+class ItemCollectionUmbrella<T>::const_iterator
   : public IteratorBase<const_iterator, IndexType>
 {
 private:
   using BaseType = IteratorBase<const_iterator, IndexType>;
-  using CollectionType = ItemCollection<T>;
+  using CollectionType = ItemCollectionUmbrella<T>;
 
 public:
   // Iterator traits required to satisfy LegacyRandomAccessIterator concept
@@ -312,13 +510,13 @@ private:
 };
 
 /*!
- * \brief Utility class to wrap an ItemCollection in support of iteration
+ * \brief Utility class to wrap an ItemCollectionUmbrella in support of iteration
  */
 template <typename T>
-class ItemCollection<T>::iterator_adaptor
+class ItemCollectionUmbrella<T>::iterator_adaptor
 {
 public:
-  using CollectionType = ItemCollection<T>;
+  using CollectionType = ItemCollectionUmbrella<T>;
 
 public:
   iterator_adaptor(Ptr<VoidPtr, CollectionType> coll) : m_collection(coll) { }
@@ -344,13 +542,13 @@ private:
 };
 
 /*!
- * \brief Utility class to wrap a const ItemCollection in support of iteration
+ * \brief Utility class to wrap a const ItemCollectionUmbrella in support of iteration
  */
 template <typename T>
-class ItemCollection<T>::const_iterator_adaptor
+class ItemCollectionUmbrella<T>::const_iterator_adaptor
 {
 public:
-  using CollectionType = ItemCollection<T>;
+  using CollectionType = ItemCollectionUmbrella<T>;
 
 public:
   const_iterator_adaptor(const Ptr<VoidPtr, CollectionType> coll)

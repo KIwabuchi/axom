@@ -44,10 +44,10 @@ std::string View::getPathName() const
 
   if(path.length() < 1)
   {
-    return getName();
+    return getName().c_str();
   }
 
-  return path + getOwningGroup()->getPathDelimiter() + getName();
+  return path + getOwningGroup()->getPathDelimiter() + getName().c_str();
 }
 
 /*
@@ -343,7 +343,7 @@ Buffer* View::detachBuffer()
 
   if(m_state == BUFFER)
   {
-    buff = m_data_buffer;
+    buff = &(*m_data_buffer);
     m_data_buffer->detachFromView(this);
   }
 
@@ -414,7 +414,7 @@ View* View::apply()
   else
   {
     SLIC_ASSERT(m_state == EXTERNAL);
-    data_pointer = m_external_ptr;
+    data_pointer = metall::to_raw_pointer(m_external_ptr);
   }
 
   m_node.set_external(m_schema, data_pointer);
@@ -571,7 +571,7 @@ void* View::getVoidPtr() const
     }
     else
     {
-      rv = m_external_ptr;  // Opaque
+      rv = metall::to_raw_pointer(m_external_ptr);  // Opaque
     }
     break;
   case BUFFER:
@@ -927,17 +927,19 @@ void View::copyMetadataToNode(Node& n) const
  *
  *************************************************************************
  */
-View::View(const std::string& name)
-  : m_name(name)
+View::View(const std::string& name, const AllocatorType& alloc)
+  : m_name(name, alloc)
   , m_index(InvalidIndex)
   , m_owning_group(nullptr)
   , m_data_buffer(nullptr)
-  , m_schema()
-  , m_node()
-  , m_shape()
+  , m_schema(alloc)
+  , m_node(alloc)
+  , m_shape(alloc)
   , m_external_ptr(nullptr)
   , m_state(EMPTY)
   , m_is_applied(false)
+  , m_attr_values(alloc)
+  , m_allocator(alloc)
 { }
 
 /*
@@ -1089,10 +1091,10 @@ void View::copyView(View* copy) const
     copy->m_is_applied = true;
     break;
   case EXTERNAL:
-    copy->setExternalDataPtr(m_external_ptr);
+    copy->setExternalDataPtr(metall::to_raw_pointer(m_external_ptr));
     break;
   case BUFFER:
-    copy->attachBuffer(m_data_buffer);
+    copy->attachBuffer(metall::to_raw_pointer(m_data_buffer));
     break;
   default:
     SLIC_ASSERT_MSG(false,
@@ -1562,7 +1564,8 @@ void View::exportDescription(conduit::Node& data_holder) const
   data_holder["schema"] = m_schema.to_json();
   if(getNumDimensions() > 1)
   {
-    data_holder["shape"].set(m_shape);
+    std::vector<IndexType> tmp(m_shape.begin(), m_shape.end());
+    data_holder["shape"].set(tmp);
   }
 }
 

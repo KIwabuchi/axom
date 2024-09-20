@@ -16,6 +16,9 @@
 #ifndef SIDRE_GROUP_HPP_
 #define SIDRE_GROUP_HPP_
 
+#include <metall/metall.hpp>
+#include <metall/container/string.hpp>
+
 // axom headers
 #include "axom/config.hpp"
 #include "axom/core/Macros.hpp"
@@ -40,7 +43,9 @@
 // Sidre headers
 #include "SidreTypes.hpp"
 #include "View.hpp"
-#include "ItemCollection.hpp"
+#include "ItemCollectionUmbrella.hpp"
+#include "Memory.hpp"
+#include "MetallContainer.hpp"
 
 namespace axom
 {
@@ -50,9 +55,7 @@ class Buffer;
 class Group;
 class DataStore;
 template <typename TYPE>
-class ItemCollection;
-template <typename TYPE>
-class MapCollection;
+class ItemCollectionUmbrella;
 
 /*!
  * \class Group
@@ -138,8 +141,11 @@ public:
   friend class DataStore;
   friend class View;
 
-  using ViewCollection = ItemCollection<View>;
-  using GroupCollection = ItemCollection<Group>;
+  using ViewCollectionType = ItemCollectionUmbrella<View>;
+  using GroupCollectionType = ItemCollectionUmbrella<Group>;
+
+  using AllocatorType = metall::manager::fallback_allocator<void>;
+  using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
 
   //@{
   //!  @name Basic query and accessor methods.
@@ -192,7 +198,7 @@ public:
    *
    * \sa getPath(), getPathName()
    */
-  const std::string& getName() const { return m_name; }
+  const auto& getName() const { return m_name; }
 
   /*!
    * \brief Return path of Group object, not including its name.
@@ -221,10 +227,11 @@ public:
 
     if(path.length() < 1)
     {
-      return getName();
+      return getName().c_str();
     }
 
-    return path + getPathDelimiter() + getName();
+    return std::string(path.c_str()) + getPathDelimiter() +
+      std::string(getName().c_str());
   }
 
   /*!
@@ -235,7 +242,7 @@ public:
    * This allows root->getParent()->getParent() to always work similar
    * to how the filesystem's `cd /; cd ../..` works.
    */
-  Group* getParent() { return m_parent; }
+  Group* getParent() { return &(*m_parent); }
 
   /*!
    * \brief Return pointer to const parent Group of a Group.
@@ -245,7 +252,7 @@ public:
    * This allows root->getParent()->getParent() to always work similar
    * to how the filesystem's `cd /; cd ../..` works.
    */
-  const Group* getParent() const { return m_parent; }
+  const Group* getParent() const { return &(*m_parent); }
 
   /*!
    * \brief Return number of child Groups in a Group object.
@@ -261,18 +268,18 @@ public:
    * \brief Return pointer to non-const DataStore object that owns this
    * object.
    */
-  DataStore* getDataStore() { return m_datastore; }
+  DataStore* getDataStore() { return &(*m_datastore); }
 
   /*!
    * \brief Return pointer to const DataStore object that owns this
    * object.
    */
-  const DataStore* getDataStore() const { return m_datastore; }
+  const DataStore* getDataStore() const { return &(*m_datastore); }
 
   /*!
    * \brief Return true if this Group is the DataStore's root Group.
    */
-  bool isRoot() const { return m_parent == this; }
+  bool isRoot() const { return &(*m_parent) == this; }
 
 #ifdef AXOM_USE_UMPIRE
 
@@ -312,8 +319,8 @@ public:
 
   /*!
    * \brief Insert information about data associated with Group subtree with
-   *        this Group at root of tree (default 'recursive' is true), or for 
-   *        this Group only ('recursive' is false) in fields of given 
+   *        this Group at root of tree (default 'recursive' is true), or for
+   *        this Group only ('recursive' is false) in fields of given
    *        Conduit Node.
    *
    *        Fields in Conduit Node will be named:
@@ -321,40 +328,40 @@ public:
    *          - "num_groups" : total number of Groups in subtree or single Group
    *          - "num_views" : total number of Views in subtree or single Group
    *          - "num_views_empty" : total number of Views with no associated
-   *                                 Buffer or data 
+   *                                 Buffer or data
    *                                 (may or may not be described)
    *          - "num_views_buffer" : total number of Views associated
-   *                                 with a DataStore Buffer 
+   *                                 with a DataStore Buffer
    *          - "num_views_external" : total number of Views associated with
-   *                                   external data 
+   *                                   external data
    *          - "num_views_scalar" : total number of Views associated with
-   *                                 single scalar data item 
+   *                                 single scalar data item
    *          - "num_views_string" : total number of Views associated with
    *                                 string data
-   *          - "num_bytes_assoc_with_views" : total number of bytes 
+   *          - "num_bytes_assoc_with_views" : total number of bytes
    *                                           associated with Views in subtree
-   *                                           or single Group that are 
-   *                                           allocated in Buffers in 
-   *                                           the DataStore. NOTE: This 
-   *                                           may be an over-count if data 
-   *                                           for two or more Views overlaps 
-   *                                           in a shared Buffer. 
+   *                                           or single Group that are
+   *                                           allocated in Buffers in
+   *                                           the DataStore. NOTE: This
+   *                                           may be an over-count if data
+   *                                           for two or more Views overlaps
+   *                                           in a shared Buffer.
    *          - "num_bytes_external" : total number of bytes described by
-   *                                   external Views in Group subtree or 
-   *                                   single Group. The data may or may not 
+   *                                   external Views in Group subtree or
+   *                                   single Group. The data may or may not
    *                                   be allocated. NOTE: If there are
-   *                                   overlaps in data associated with 
-   *                                   multiple external Views, this may be 
+   *                                   overlaps in data associated with
+   *                                   multiple external Views, this may be
    *                                   an over-count.
    *          - "num_bytes_in_buffers" : total number of bytes allocated in
    *                                     Buffers referenced by Views in
-   *                                     subtree or single Group 
+   *                                     subtree or single Group
    *
    * Numeric values associated with these fields may be accessed as type
    * axom::IndexType, which is defined at compile-time. For example,
    *
    * Group* gp = ...;
-   * 
+   *
    * Node n;
    * gp->getDataInfo(n);
    * axom::IndexType num_views = n["num_views"].value();
@@ -926,7 +933,7 @@ public:
    * deep copy performs a copy of the data described by the View
    * into a new Buffer attached to the destination View. If the source View
    * describes only part of a Buffer or part of an external array, due to
-   * strides and or offsets into the data, only the values seen by the 
+   * strides and or offsets into the data, only the values seen by the
    * description will be copied into the new View. The new View will have
    * a Buffer that is the exact size of the number of values that are copied,
    * with an offset of zero and a stride of one.
@@ -977,7 +984,7 @@ public:
    *
    *        If no such child Group exists, return sidre::InvalidName.
    */
-  const std::string& getGroupName(IndexType idx) const;
+  std::string getGroupName(IndexType idx) const;
 
   //@}
 
@@ -1035,22 +1042,22 @@ public:
   /*!
    * \brief Returns an adaptor to support iterating the collection of views
    */
-  typename ViewCollection::iterator_adaptor views();
+  typename ViewCollectionType::iterator_adaptor views();
 
   /*!
    * \brief Returns a const adaptor to support iterating the collection of views
    */
-  typename ViewCollection::const_iterator_adaptor views() const;
+  typename ViewCollectionType::const_iterator_adaptor views() const;
 
   /*!
    * \brief Returns an adaptor to support iterating the collection of groups
    */
-  typename GroupCollection::iterator_adaptor groups();
+  typename GroupCollectionType::iterator_adaptor groups();
 
   /*!
    * \brief Returns a const adaptor to support iterating the collection of groups
    */
-  typename GroupCollection::const_iterator_adaptor groups() const;
+  typename GroupCollectionType::const_iterator_adaptor groups() const;
 
   //@}
 private:
@@ -1061,7 +1068,7 @@ private:
    * for its collection of views
    * \sa isUsingMap, isUsingList
    */
-  MapCollection<View>* getNamedViews();
+  ViewCollectionType* getNamedViews();
 
   /*!
    * \brief Casts the views ItemCollection to a const (named) MapCollection
@@ -1070,7 +1077,7 @@ private:
    * for its collection of views
    * \sa isUsingMap, isUsingList
    */
-  const MapCollection<View>* getNamedViews() const;
+  const ViewCollectionType* getNamedViews() const;
 
   /*!
    * \brief Casts the group ItemCollection to a (named) MapCollection
@@ -1079,7 +1086,7 @@ private:
    * for its collection of groups
    * \sa isUsingMap, isUsingList
    */
-  MapCollection<Group>* getNamedGroups();
+  GroupCollectionType* getNamedGroups();
 
   /*!
    * \brief Casts the group ItemCollection to a const (named) MapCollection
@@ -1088,7 +1095,7 @@ private:
    * for its collection of groups
    * \sa isUsingMap, isUsingList
    */
-  const MapCollection<Group>* getNamedGroups() const;
+  const GroupCollectionType* getNamedGroups() const;
 
   /*!
    * \brief Method to (recursively) accumulate information about data in
@@ -1745,7 +1752,10 @@ private:
    *  strings for names.  If not in list format, all items must have unique
    *  non-empty strings for names.
    */
-  Group(const std::string& name, DataStore* datastore, bool is_list);
+  Group(const std::string& name,
+        DataStore* datastore,
+        bool is_list,
+        const AllocatorType& alloc);
 
   /*!
    * \brief Destructor destroys all Views and child Groups.
@@ -1913,16 +1923,16 @@ private:
   int getValidAllocatorID(int allocatorID);
 
   /// Name of this Group object.
-  std::string m_name;
+  metall_container::string m_name;
 
   /// Index of this Group object within m_parent.
   IndexType m_index;
 
   /// Parent Group of this Group object.
-  Group* m_parent;
+  Ptr<VoidPtr, Group> m_parent;
 
   /// This Group object lives in the tree of this DataStore object.
-  DataStore* m_datastore;
+  Ptr<VoidPtr, DataStore> m_datastore;
 
   /// This identifies whether this Group holds items in list format.
   bool m_is_list;
@@ -1931,14 +1941,19 @@ private:
   AXOM_SIDRE_EXPORT static const char s_path_delimiter;
 
   /// Collection of Views
-  ViewCollection* m_view_coll;
+  Ptr<VoidPtr, ViewCollectionType> m_view_coll;
 
   /// Collection of child Groups
-  GroupCollection* m_group_coll;
+  Ptr<VoidPtr, GroupCollectionType> m_group_coll;
 
 #ifdef AXOM_USE_UMPIRE
   int m_default_allocator_id;
 #endif
+
+  AllocatorType m_allocator;
+
+  // Collection of the valid I/O protocols for save and load.
+  AXOM_SIDRE_EXPORT static const std::vector<std::string> s_io_protocols;
 };
 
 } /* end namespace sidre */

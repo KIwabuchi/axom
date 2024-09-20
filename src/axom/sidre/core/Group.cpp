@@ -16,8 +16,7 @@
 #include "axom/core/Path.hpp"
 
 // Sidre headers
-#include "ListCollection.hpp"
-#include "MapCollection.hpp"
+#include "ItemCollectionUmbrella.hpp"
 #include "Buffer.hpp"
 #include "DataStore.hpp"
 
@@ -43,36 +42,38 @@ const char Group::s_path_delimiter = '/';
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-MapCollection<View>* Group::getNamedViews()
+Group::ViewCollectionType* Group::getNamedViews()
 {
   SLIC_ASSERT_MSG(this->isUsingMap(),
                   "Invalid cast: The views in this group do not have names");
 
-  return static_cast<MapCollection<View>*>(m_view_coll);
+  return static_cast<Group::ViewCollectionType*>(metall::to_raw_pointer(m_view_coll));
 }
 
-const MapCollection<View>* Group::getNamedViews() const
+const Group::ViewCollectionType* Group::getNamedViews() const
 {
   SLIC_ASSERT_MSG(this->isUsingMap(),
                   "Invalid cast: The views in this group do not have names");
 
-  return static_cast<const MapCollection<View>*>(m_view_coll);
+  return static_cast<const Group::ViewCollectionType*>(
+    metall::to_raw_pointer(m_view_coll));
 }
 
-MapCollection<Group>* Group::getNamedGroups()
+Group::GroupCollectionType* Group::getNamedGroups()
 {
   SLIC_ASSERT_MSG(this->isUsingMap(),
                   "Invalid cast: The groups in this group do not have names");
 
-  return static_cast<MapCollection<Group>*>(m_group_coll);
+  return static_cast<Group::GroupCollectionType*>(metall::to_raw_pointer(m_group_coll));
 }
 
-const MapCollection<Group>* Group::getNamedGroups() const
+const Group::GroupCollectionType* Group::getNamedGroups() const
 {
   SLIC_ASSERT_MSG(this->isUsingMap(),
                   "Invalid cast: The groups in this group do not have names");
 
-  return static_cast<const MapCollection<Group>*>(m_group_coll);
+  return static_cast<const Group::GroupCollectionType*>(
+    metall::to_raw_pointer(m_group_coll));
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -92,12 +93,12 @@ std::string Group::getPath() const
 {
   const Group* root = getDataStore()->getRoot();
   const Group* curr = getParent();
-  std::string thePath = curr->getName();
+  std::string thePath(curr->getName().c_str());
   curr = curr->getParent();
 
   while(curr != root)
   {
-    thePath = curr->getName() + s_path_delimiter + thePath;
+    thePath = std::string(curr->getName().c_str()) + s_path_delimiter + thePath;
     curr = curr->getParent();
   }
 
@@ -107,8 +108,8 @@ std::string Group::getPath() const
 /*
  *************************************************************************
  *
- * Insert information about data associated with Group subtree with this 
- * Group at root of tree (default 'recursive' is true), or for this Group 
+ * Insert information about data associated with Group subtree with this
+ * Group at root of tree (default 'recursive' is true), or for this Group
  * only ('recursive' is false) in fields of given Conduit Node.
  *
  *************************************************************************
@@ -401,7 +402,9 @@ View* Group::createView(const std::string& path)
     }
   }
 
-  View* view = new(std::nothrow) View(intpath);
+  View* view = rebind_alloc<AllocatorType, View>(m_allocator, 1);
+  new(view) View(intpath, m_allocator);
+
   if(view != nullptr)
   {
     group->attachView(view);
@@ -1136,12 +1139,12 @@ Group* Group::createGroup(const std::string& path, bool is_list)
     return nullptr;
   }
 
-  Group* new_group =
-    new(std::nothrow) Group(intpath, group->getDataStore(), is_list);
+  auto* new_group = rebind_alloc<AllocatorType, Group>(m_allocator);
   if(new_group == nullptr)
   {
     return nullptr;
   }
+  new(new_group) Group(intpath, group->getDataStore(), is_list, m_allocator);
 
 #ifdef AXOM_USE_UMPIRE
   new_group->setDefaultAllocator(group->getDefaultAllocator());
@@ -1159,7 +1162,8 @@ Group* Group::createUnnamedGroup(bool is_list)
   Group* new_group;
   if(m_is_list)
   {
-    new_group = new(std::nothrow) Group("", getDataStore(), is_list);
+    new_group = rebind_alloc<AllocatorType, Group>(m_allocator);
+    new(new_group) Group("", getDataStore(), is_list, m_allocator);
   }
   else
   {
@@ -2297,27 +2301,43 @@ bool Group::loadExternalData(const hid_t& h5_id)
  *
  *************************************************************************
  */
-Group::Group(const std::string& name, DataStore* datastore, bool is_list)
-  : m_name(name)
+Group::Group(const std::string& name,
+             DataStore* datastore,
+             bool is_list,
+             const AllocatorType& alloc)
+  : m_name(name, alloc)
   , m_index(InvalidIndex)
   , m_parent(nullptr)
   , m_datastore(datastore)
   , m_is_list(is_list)
   , m_view_coll(nullptr)
   , m_group_coll(nullptr)
+  , m_allocator(alloc)
 #ifdef AXOM_USE_UMPIRE
   , m_default_allocator_id(axom::getDefaultAllocatorID())
 #endif
 {
   if(is_list)
   {
-    m_view_coll = new ListCollection<View>();
-    m_group_coll = new ListCollection<Group>();
+    m_view_coll =
+      rebind_construct<AllocatorType, ItemCollectionUmbrella<View>>(m_allocator,
+                                 ItemCollectionUmbrella<View>::store_type::list,
+                                                            m_allocator);
+    m_group_coll =
+      rebind_construct<AllocatorType, ItemCollectionUmbrella<Group>>(m_allocator,
+                                 ItemCollectionUmbrella<Group>::store_type::list,
+                                                             m_allocator);
   }
   else
   {
-    m_view_coll = new MapCollection<View>();
-    m_group_coll = new MapCollection<Group>();
+    m_view_coll =
+      rebind_construct<AllocatorType, ItemCollectionUmbrella<View>>(m_allocator,
+                                  ItemCollectionUmbrella<View>::store_type::map,
+                                                           m_allocator);
+    m_group_coll =
+      rebind_construct<AllocatorType, ItemCollectionUmbrella<Group>>(m_allocator,
+                                  ItemCollectionUmbrella<Group>::store_type::map,
+                                                            m_allocator);
   }
 }
 
@@ -2332,8 +2352,8 @@ Group::~Group()
 {
   destroyViews();
   destroyGroups();
-  delete m_view_coll;
-  delete m_group_coll;
+  rebind_deallocate(m_allocator, m_view_coll);
+  rebind_deallocate(m_allocator, m_group_coll);
 }
 
 /*
@@ -3152,7 +3172,7 @@ IndexType Group::getNextValidViewIndex(IndexType idx) const
 /*!
  * \brief Returns an adaptor to support iterating the collection of views
  */
-typename Group::ViewCollection::iterator_adaptor Group::views()
+typename Group::ViewCollectionType::iterator_adaptor Group::views()
 {
   return m_view_coll->getIteratorAdaptor();
 }
@@ -3160,7 +3180,7 @@ typename Group::ViewCollection::iterator_adaptor Group::views()
 /*!
  * \brief Returns a const adaptor to support iterating the collection of views
  */
-typename Group::ViewCollection::const_iterator_adaptor Group::views() const
+typename Group::ViewCollectionType::const_iterator_adaptor Group::views() const
 {
   return m_view_coll->getIteratorAdaptor();
 }
@@ -3168,7 +3188,7 @@ typename Group::ViewCollection::const_iterator_adaptor Group::views() const
 /*!
  * \brief Returns an adaptor to support iterating the collection of groups
  */
-typename Group::GroupCollection::iterator_adaptor Group::groups()
+typename Group::GroupCollectionType::iterator_adaptor Group::groups()
 {
   return m_group_coll->getIteratorAdaptor();
 }
@@ -3176,7 +3196,7 @@ typename Group::GroupCollection::iterator_adaptor Group::groups()
 /*!
  * \brief Returns a const adaptor to support iterating the collection of groups
  */
-typename Group::GroupCollection::const_iterator_adaptor Group::groups() const
+typename Group::GroupCollectionType::const_iterator_adaptor Group::groups() const
 {
   return m_group_coll->getIteratorAdaptor();
 }
@@ -3230,13 +3250,14 @@ IndexType Group::getGroupIndex(const std::string& name) const
  *
  *************************************************************************
  */
-const std::string& Group::getGroupName(IndexType idx) const
+std::string Group::getGroupName(IndexType idx) const
 {
   SLIC_CHECK_MSG(
     hasGroup(idx),
     SIDRE_GROUP_LOG_PREPEND << "Group has no child Group with index " << idx);
-
-  return getNamedGroups()->getItemName(idx);
+  auto str = getNamedGroups()->getItemName(idx);
+  std::string tmp(str.begin(), str.end());
+  return tmp;
 }
 
 /*

@@ -36,9 +36,11 @@ namespace sidre
  *
  *************************************************************************
  */
-Attribute::Attribute(const std::string& name)
-  : m_name(name)
+Attribute::Attribute(const std::string& name, const AllocatorType& alloc)
+  : m_name(name, alloc)
   , m_index(InvalidIndex)
+  , m_default_value(alloc)
+  , m_allocator(alloc)
 { }
 
 /*

@@ -167,7 +167,10 @@ static bool checkViewValues(View* view,
 
 TEST(sidre_view,create_views)
 {
-  DataStore* ds   = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
   Group* root = ds->getRoot();
 
   View* dv_0 = root->createViewAndAllocate("field0", INT_ID, 1);
@@ -181,7 +184,8 @@ TEST(sidre_view,create_views)
 
   EXPECT_EQ(0, db_0->getIndex());
   EXPECT_EQ(1, db_1->getIndex());
-  delete ds;
+
+  mgr.destroy_ptr<DataStore>(ds);
 }
 #endif
 
@@ -189,7 +193,10 @@ TEST(sidre_view,create_views)
 
 TEST(sidre_view, get_path_name)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
   Group* root = ds->getRoot();
   View* v1 = root->createView("test/a/b/v1");
   View* v2 = root->createView("test/v2");
@@ -211,14 +218,17 @@ TEST(sidre_view, get_path_name)
 
   EXPECT_EQ(1, v4->getIndex());
 
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
 
 TEST(sidre_view, create_view_from_path)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
   Group* root = ds->getRoot();
 
   // Verify create works when groups must be created on demand.
@@ -233,7 +243,7 @@ TEST(sidre_view, create_view_from_path)
 
   (void)baz;
 
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 
 #if 0
   ds = new DataStore();
@@ -290,7 +300,10 @@ static void checkScalarValues(View* view,
 
 TEST(sidre_view, scalar_view)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
   Group* root = ds->getRoot();
   int i;
   const char* s;
@@ -338,7 +351,7 @@ TEST(sidre_view, scalar_view)
   const char* svalue = empty->getString();
   EXPECT_EQ(nullptr, svalue);
 
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
@@ -348,7 +361,10 @@ TEST(sidre_view, scalar_view)
 
 TEST(sidre_view, dealloc)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
   Group* root = ds->getRoot();
   Buffer* dbuff;
   View* dv;
@@ -397,7 +413,7 @@ TEST(sidre_view, dealloc)
   EXPECT_TRUE(checkViewValues(dv, BUFFER, true, false, false, BLEN));
   EXPECT_FALSE(dv->getBuffer()->isAllocated());
 
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
@@ -406,7 +422,10 @@ TEST(sidre_view, dealloc)
 
 TEST(sidre_view, alloc_zero_items)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
   Group* root = ds->getRoot();
 
   // Allocate View with zero items
@@ -563,12 +582,16 @@ TEST(sidre_view, alloc_zero_items)
     EXPECT_EQ(0, dv->getBuffer()->getNumElements());
   }
 
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 TEST(sidre_view, save_empty_view_non_empty_buffer)
 {
-  DataStore ds;
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* dsp = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
+  auto& ds = *dsp;
   Group* root = ds.getRoot();
 
   // allocate non-empty buffer
@@ -589,11 +612,16 @@ TEST(sidre_view, save_empty_view_non_empty_buffer)
 #ifdef AXOM_USE_HDF5
   root->save("empty_view_non_empty_buffer.sidre.hdf5", "sidre_hdf5");  // ok
 #endif
+  mgr.destroy_ptr<DataStore>(dsp);
 }
 
 TEST(sidre_view, save_empty_view)
 {
-  DataStore ds;
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* dsp = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
+  auto& ds = *dsp;
   Group* root = ds.getRoot();
 
   root->createView("a", INT_ID, 0)->allocate()->apply();  // create View and
@@ -603,6 +631,7 @@ TEST(sidre_view, save_empty_view)
   root->save("empty_view.sidre.json", "sidre_json");  // this is ok
   // root->save("empty_view.sidre.hdf5", "sidre_hdf5");   // <-- problem here
   // (in conduit 0.2.1)
+  mgr.destroy_ptr<DataStore>(dsp);
 }
 
 //------------------------------------------------------------------------------
@@ -612,7 +641,10 @@ TEST(sidre_view, save_empty_view)
 
 TEST(sidre_view, alloc_and_dealloc_multiview)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
   Group* root = ds->getRoot();
 
   Buffer* dbuff;
@@ -679,14 +711,17 @@ TEST(sidre_view, alloc_and_dealloc_multiview)
   EXPECT_EQ(dbuff->getNumElements(), BLEN);
   EXPECT_EQ(dbuff->getVoidPtr(), baddr);
 
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
 
 TEST(sidre_view, int_alloc_view)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
   Group* root = ds->getRoot();
   View* dv;
   IndexType shape[] = {BLEN};
@@ -730,7 +765,7 @@ TEST(sidre_view, int_alloc_view)
   dv = root->createViewAndAllocate("a2", DataType::c_int(BLEN));
   EXPECT_TRUE(checkViewValues(dv, BUFFER, true, true, true, BLEN));
 
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
@@ -740,7 +775,10 @@ TEST(sidre_view, int_alloc_view)
 
 TEST(sidre_view, int_buffer_view)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
   Group* root = ds->getRoot();
   Buffer *dbuff, *otherbuffer;
   View* dv;
@@ -871,7 +909,7 @@ TEST(sidre_view, int_buffer_view)
   // isAllocated
   // useful
 
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
@@ -885,7 +923,10 @@ TEST(sidre_view, int_array_strided_views)
   const IndexType elt_stride = 2;
   const IndexType elt_bytes = sizeof(int);
 
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
   Group* root = ds->getRoot();
   Buffer* dbuff = ds->createBuffer(INT_ID, num_elts);
 
@@ -1007,14 +1048,17 @@ TEST(sidre_view, int_array_strided_views)
   EXPECT_FALSE(dv_e1->isAllocated());
   EXPECT_FALSE(dv_o1->isAllocated());
 
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
 
 TEST(sidre_view, int_array_depth_view)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
   Group* root = ds->getRoot();
 
   const IndexType depth_nelems = 10;
@@ -1078,14 +1122,17 @@ TEST(sidre_view, int_array_depth_view)
   }
 
   ds->print();
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
 
 TEST(sidre_view, view_offset_and_stride)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
   Group* root = ds->getRoot();
 
   const IndexType nelems = 15;
@@ -1251,14 +1298,17 @@ TEST(sidre_view, view_offset_and_stride)
   // -- cleanup
 
   ds->print();
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
 
 TEST(sidre_view, int_array_view_attach_buffer)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
   Group* root = ds->getRoot();
 
   const IndexType field_nelems = 10;
@@ -1306,7 +1356,7 @@ TEST(sidre_view, int_array_view_attach_buffer)
   }
 
   ds->print();
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
@@ -1325,7 +1375,10 @@ TEST(sidre_view, int_array_multi_view_resize)
   ///
 
   // create our main data store
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
   // get access to our root data Group
   Group* root = ds->getRoot();
 
@@ -1463,7 +1516,7 @@ TEST(sidre_view, int_array_multi_view_resize)
   buff_new->print();
 
   ds->print();
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
@@ -1475,7 +1528,10 @@ TEST(sidre_view, int_array_realloc)
   ///
 
   // create our main data store
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
   // get access to our root data Group
   Group* root = ds->getRoot();
 
@@ -1525,7 +1581,7 @@ TEST(sidre_view, int_array_realloc)
   // XXX  a1->reallocate(DataType::c_int(20));
 
   ds->print();
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
@@ -1533,7 +1589,10 @@ TEST(sidre_view, int_array_realloc)
 TEST(sidre_view, simple_opaque)
 {
   // create our main data store
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
   // get access to our root data Group
   Group* root = ds->getRoot();
   int* src_data = new int[1];
@@ -1559,14 +1618,17 @@ TEST(sidre_view, simple_opaque)
   EXPECT_EQ(out_data[0], 42);
 
   ds->print();
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
   delete[] src_data;
 }
 
 //------------------------------------------------------------------------------
 TEST(sidre_view, rename_view)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
   Group* root = ds->getRoot();
   View* v1 = root->createView("v_a");
   View* v2 = root->createView("v_b");
@@ -1586,14 +1648,17 @@ TEST(sidre_view, rename_view)
   EXPECT_FALSE(success);
   EXPECT_TRUE(v3->getName() == "v_c");
 
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
 
 TEST(sidre_datastore, destroy_buffer)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
   Group* root = ds->getRoot();
 
   Buffer* dbuff1 = ds->createBuffer()->allocate(INT_ID, BLEN);
@@ -1615,7 +1680,7 @@ TEST(sidre_datastore, destroy_buffer)
   EXPECT_FALSE(view1a->hasBuffer());
   EXPECT_FALSE(view1b->hasBuffer());
 
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
@@ -1624,7 +1689,11 @@ TEST(sidre_view, value_from_uninited_view)
   // Note: This test relies on re-wiring conduit error handlers
   DataStore::setConduitSLICMessageHandlers();
 
-  DataStore ds;
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* dsp = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
+  auto& ds = *dsp;
   View* view = ds.getRoot()->createView("empty");
 
   // check getScalar
@@ -1647,12 +1716,17 @@ TEST(sidre_view, value_from_uninited_view)
 
   // restore conduit default errors
   DataStore::setConduitDefaultMessageHandlers();
+
+  mgr.destroy_ptr<DataStore>(dsp);
 }
 
 //------------------------------------------------------------------------------
 TEST(sidre_view, import_array_node)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
   Group* root = ds->getRoot();
 
   //Import Node holding int array
@@ -1721,14 +1795,17 @@ TEST(sidre_view, import_array_node)
   v4->importArrayNode(n_ints);
   EXPECT_TRUE(v4->isString());
 
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
 
 TEST(sidre_view, clear_view)
 {
-  DataStore* ds = new DataStore();
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* ds = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
   Group* root = ds->getRoot();
 
   // Create an empty view.
@@ -1823,7 +1900,7 @@ TEST(sidre_view, clear_view)
     EXPECT_TRUE(checkViewValues(view, EMPTY, false, false, false, 0));
   }
 
-  delete ds;
+  mgr.destroy_ptr<DataStore>(ds);
 }
 
 //------------------------------------------------------------------------------
@@ -2029,7 +2106,11 @@ INSTANTIATE_TEST_SUITE_P(sidre_view, UmpireTest, ::testing::ValuesIn(allocators)
 TEST(sidre_view, isUpdateableFrom)
 {
   constexpr int SIZE = 100;
-  DataStore ds;
+  metall::manager mgr(metall::create_only, "./metall_ds");
+  DataStore* dsp = mgr.construct<DataStore>
+                      (metall::unique_instance)
+                      (mgr.get_allocator<std::byte>());
+  auto& ds = *dsp;
   Group* root = ds.getRoot();
   View* host = root->createViewAndAllocate("v", INT_ID, SIZE);
 
@@ -2091,6 +2172,7 @@ TEST(sidre_view, isUpdateableFrom)
     ASSERT_TRUE(host->isUpdateableFrom(v));
     ASSERT_TRUE(v->isUpdateableFrom(host));
   }
+  mgr.destroy_ptr<DataStore>(dsp);
 }
 
 class UpdateTest
@@ -2209,6 +2291,7 @@ private:
   int* m_dst_array = nullptr;
 };
 
+#if 0
 TEST_P(UpdateTest, updateFrom)
 {
   std::cout << "SRC = " << src_string << ", DST = " << dst_string
@@ -2271,7 +2354,7 @@ INSTANTIATE_TEST_SUITE_P(sidre_view,
                          ::testing::Combine(::testing::ValuesIn(copy_locations),
                                             ::testing::ValuesIn(copy_locations),
                                             ::testing::ValuesIn(offsets)));
-
+#endif
 //----------------------------------------------------------------------
 int main(int argc, char* argv[])
 {

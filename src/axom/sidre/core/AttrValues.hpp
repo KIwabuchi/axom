@@ -17,6 +17,8 @@
 #include <string>
 #include <vector>
 
+#include <metall/metall.hpp>
+
 // Other axom headers
 #include "axom/config.hpp"
 #include "axom/core/Macros.hpp"
@@ -25,6 +27,8 @@
 // Sidre project headers
 #include "axom/sidre/core/Attribute.hpp"
 #include "axom/sidre/core/SidreTypes.hpp"
+#include "axom/sidre/core/Memory.hpp"
+#include "axom/sidre/core/MetallContainer.hpp"
 
 #ifndef SIDRE_ATTRVALUES_HPP_
   #define SIDRE_ATTRVALUES_HPP_
@@ -62,6 +66,9 @@ class View;
  */
 class AttrValues
 {
+  using AllocatorType = metall::manager::fallback_allocator<void>;
+  using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
+
 public:
   /// Friend declarations to constrain usage via controlled access to private members.
   friend class View;
@@ -171,7 +178,7 @@ private:
   {
     if(m_values != nullptr)
     {
-      delete m_values;
+      rebind_deallocate(m_alloc, m_values);
       m_values = nullptr;
     }
   }
@@ -228,7 +235,7 @@ private:
   /*!
    *  \brief Private ctor.
    */
-  AttrValues();
+  AttrValues(const AllocatorType& alloc);
 
   /*!
    * \brief Private copy ctor.
@@ -244,11 +251,12 @@ private:
 
   ///////////////////////////////////////////////////////////////////
   //
-  using Values = std::vector<Node>;
+  using Values = metall_container::vector<Node>;
   ///////////////////////////////////////////////////////////////////
 
   /// Attributes values.
-  Values* m_values;
+  Ptr<VoidPtr, Values> m_values;
+  AllocatorType m_alloc;
 };
 
 } /* end namespace sidre */

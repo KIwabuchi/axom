@@ -68,6 +68,9 @@
  * each prepended with an underscore.
  */
 
+#include <metall/metall.hpp>
+#include <metall/utility/metall_mpi_adaptor.hpp>
+
 // Axom headers
 #include "axom/core.hpp"
 #include "axom/sidre.hpp"
@@ -88,11 +91,10 @@
 // "using" directives to simplify code
 namespace sidre = axom::sidre;
 
-std::unique_ptr<sidre::DataStore> create_datastore(int* region)
+void create_datastore(sidre::DataStore* ds, int* region)
 {
   // _first_example_creategroups_start
   // Create Sidre datastore object and get root group
-  auto ds = std::unique_ptr<sidre::DataStore> {new sidre::DataStore()};
   sidre::Group* root = ds->getRoot();
 
   // Create two attributes
@@ -156,8 +158,6 @@ std::unique_ptr<sidre::DataStore> create_datastore(int* region)
   // and "rho", view "region" has default offset and stride.
   ext->createView("region", region)->apply(sidre::INT_ID, eltcount);
   // _first_example_fields_end
-
-  return ds;
 }
 
 void access_datastore(sidre::DataStore* ds)
@@ -272,11 +272,10 @@ void iterate_datastore(sidre::DataStore* ds)
   std::cout << fill_line << std::endl;
 }
 
-std::unique_ptr<sidre::DataStore> create_tiny_datastore()
+void create_tiny_datastore(sidre::DataStore* ds)
 {
   // _tiny_create_start
-  auto ds = std::unique_ptr<sidre::DataStore> {new sidre::DataStore()};
-
+  //
   int nodecount = 12;
   int elementcount = 2;
 
@@ -318,7 +317,6 @@ std::unique_ptr<sidre::DataStore> create_tiny_datastore()
   ef[0] = 2.65;
   ef[1] = 1.96;
 
-  return ds;
   // _tiny_create_end
 }
 
@@ -796,30 +794,87 @@ int main(int argc, char** argv)
   AXOM_UNUSED_VAR(argc);
   AXOM_UNUSED_VAR(argv);
 
-  int region[3375];
-
 #ifdef AXOM_USE_MPI
   MPI_Init(&argc, &argv);
 #endif
 
-  auto ds = create_datastore(region);
-  access_datastore(ds.get());
-  iterate_datastore(ds.get());
+  {
+    metall::manager mgr(metall::create_only, "./metall_ds");
+    sidre::DataStore* ds =
+      mgr.construct<sidre::DataStore>("ds")(mgr.get_allocator<std::byte>());
+    int* region = mgr.construct<int>("region")[3375]();
+    create_datastore(ds, region);
+  }
 
-  auto tds = create_tiny_datastore();
-  save_as_blueprint(tds.get());
+  {
+    metall::manager mgr(metall::open_only, "./metall_ds");
+    sidre::DataStore* ds = mgr.find<sidre::DataStore>("ds").first;
+    access_datastore(ds);
+    iterate_datastore(ds);
+  }
 
-  auto bds = create_tiny_datastore();
-  generate_blueprint(bds.get());
+  {
+    metall::manager mgr(metall::create_only, "./metall_ds");
+    sidre::DataStore* tds =
+      mgr.construct<sidre::DataStore>("tds")(mgr.get_allocator<std::byte>());
+    create_tiny_datastore(tds);
+  }
+  {
+    metall::manager mgr(metall::open_only, "./metall_ds");
+    sidre::DataStore* tds = mgr.find<sidre::DataStore>("tds").first;
+    save_as_blueprint(tds);
+  }
 
-  auto pds = create_tiny_datastore();
-  generate_blueprint_to_path(pds.get());
+  {
+    metall::manager mgr(metall::create_only, "./metall_ds");
+    sidre::DataStore* bds =
+      mgr.construct<sidre::DataStore>("bds")(mgr.get_allocator<std::byte>());
+    create_tiny_datastore(bds);
+  }
+  {
+    metall::manager mgr(metall::open_only, "./metall_ds");
+    sidre::DataStore* bds = mgr.find<sidre::DataStore>("bds").first;
+    generate_blueprint(bds);
+  }
+
+  {
+    metall::manager mgr(metall::create_only, "./metall_ds");
+    sidre::DataStore* pds =
+      mgr.construct<sidre::DataStore>("pds")(mgr.get_allocator<std::byte>());
+    create_tiny_datastore(pds);
+  }
+  {
+    metall::manager mgr(metall::open_only, "./metall_ds");
+    sidre::DataStore* pds = mgr.find<sidre::DataStore>("pds").first;
+    generate_blueprint_to_path(pds);
+  }
 
 #ifdef AXOM_USE_MPI
-  auto sds = create_tiny_datastore();
-  auto spds = create_tiny_datastore();
-  generate_spio_blueprint(sds.get());
-  generate_spio_blueprint_to_path(spds.get());
+  {
+    std::error_code ec;
+    std::filesystem::remove_all("./metall_ds_mpi", ec);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    metall::utility::metall_mpi_adaptor mpi_mgr(metall::create_only,
+                                                "./metall_ds_mpi");
+    auto& mgr = mpi_mgr.get_local_manager();
+    sidre::DataStore* sds =
+      mgr.construct<sidre::DataStore>("sds")(mgr.get_allocator<std::byte>());
+    sidre::DataStore* spds =
+      mgr.construct<sidre::DataStore>("spds")(mgr.get_allocator<std::byte>());
+    create_tiny_datastore(sds);
+    create_tiny_datastore(spds);
+  }
+
+  {
+    metall::utility::metall_mpi_adaptor mpi_mgr(metall::open_only,
+                                                "./metall_ds_mpi");
+    auto& mgr = mpi_mgr.get_local_manager();
+    sidre::DataStore* sds = mgr.find<sidre::DataStore>("sds").first;
+    sidre::DataStore* spds = mgr.find<sidre::DataStore>("spds").first;
+    generate_spio_blueprint(sds);
+    generate_spio_blueprint_to_path(spds);
+  }
   MPI_Finalize();
 #endif
 

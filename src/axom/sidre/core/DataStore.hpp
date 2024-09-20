@@ -20,6 +20,9 @@
 #include <vector>
 #include <stack>
 
+// TPL headers
+#include <metall/container/string.hpp>
+
 // Other axom headers
 #include "axom/config.hpp"
 #include "axom/core/Macros.hpp"
@@ -29,9 +32,10 @@
 // Sidre project headers
 #include "Attribute.hpp"
 #include "SidreTypes.hpp"
-#include "ItemCollection.hpp"
+#include "ItemCollectionUmbrella.hpp"
 #include "IndexedCollection.hpp"
-#include "MapCollection.hpp"
+#include "Memory.hpp"
+#include "MetallContainer.hpp"
 
 namespace axom
 {
@@ -44,7 +48,7 @@ template <typename TYPE>
 class IndexedCollection;
 
 template <typename TYPE>
-class MapCollection;
+class ItemCollectionUmbrella;
 
 /*!
  * \class DataStore
@@ -60,8 +64,11 @@ class MapCollection;
 class DataStore
 {
 public:
-  using AttributeCollection = MapCollection<Attribute>;
-  using BufferCollection = IndexedCollection<Buffer>;
+  using AttributeCollection = ItemCollectionUmbrella<Attribute>;
+  using BufferCollection = ItemCollectionUmbrella<Buffer>;
+
+  using AllocatorType = metall::manager::fallback_allocator<void>;
+  using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
 
 public:
   /*!
@@ -70,7 +77,7 @@ public:
    * The ctor also initializes SLIC logging environment if it is not already
    * initialized.
    */
-  DataStore();
+  DataStore(const AllocatorType& alloc = AllocatorType());
 
   /*!
    * \brief Dtor destroys all contents of the DataStore, including data held
@@ -81,12 +88,12 @@ public:
   /*!
    * \brief Return pointer to the root Group.
    */
-  Group* getRoot() { return m_RootGroup; };
+  Group* getRoot() { return &(*m_RootGroup); };
 
   /*!
    * \brief Return pointer to the root Group.
    */
-  const Group* getRoot() const { return m_RootGroup; };
+  const Group* getRoot() const { return &(*m_RootGroup); };
 
   //@{
   /*!  @name Methods to query and clear Conduit I/O flags and exception messages.
@@ -101,7 +108,7 @@ public:
   bool getConduitErrorOccurred() const { return !m_conduit_errors.empty(); };
 
   /// Return information on any Conduit errors.
-  std::string getConduitErrors() const { return m_conduit_errors; };
+  std::string getConduitErrors() const { return m_conduit_errors.c_str(); };
 
   /// Clear any Conduit errors.
   void clearConduitErrors() const { m_conduit_errors.clear(); };
@@ -109,7 +116,7 @@ public:
   /// Append a string to the accumulated Conduit errors.
   void appendToConduitErrors(const std::string& mesg) const
   {
-    m_conduit_errors = m_conduit_errors + "\n" + mesg;
+    m_conduit_errors = m_conduit_errors + "\n" + mesg.c_str();
   };
 
   //@}
@@ -122,8 +129,8 @@ public:
   IndexType getNumBuffers() const;
 
   /*!
-   *  \brief Return number of Buffers in the DataStore that are referenced 
-   *         by at least one View. 
+   *  \brief Return number of Buffers in the DataStore that are referenced
+   *         by at least one View.
    */
   IndexType getNumReferencedBuffers() const;
 
@@ -138,14 +145,14 @@ public:
    *        Conduit Node.
    *
    *        Fields in Conduit Node will be named:
-   * 
+   *
    *          - "num_buffers" : number of Buffer objects owned by DataStore
    *          - "num_buffers_referenced" : number of Buffers with View attached
    *          - "num_buffers_detached" : number of Buffers with no View attached
    *          - "num_bytes_allocated" : total number of allocated bytes over
    *                                    all buffers
    *
-   * Numeric values associated with these fields may be accessed as type 
+   * Numeric values associated with these fields may be accessed as type
    * axom::IndexType, which is defined at compile-time. For example,
    *
    * Node n;
@@ -545,19 +552,21 @@ private:
 
 private:
   /// Root Group, created when DataStore object is created.
-  Group* m_RootGroup;
+  Ptr<VoidPtr, Group> m_RootGroup;
 
   /// Collection of Buffers in DataStore instance.
-  BufferCollection* m_buffer_coll;
+  Ptr<VoidPtr, BufferCollection> m_buffer_coll;
 
   /// Collection of Attributes
-  AttributeCollection* m_attribute_coll;
+  Ptr<VoidPtr, AttributeCollection> m_attribute_coll;
 
   /// Flag indicating whether SLIC logging environment was initialized in ctor.
   bool m_need_to_finalize_slic;
 
   /// Details of the most recent Conduit error.  Length > 0 indicates an error occurred.
-  mutable std::string m_conduit_errors;
+  mutable metall_container::string m_conduit_errors;
+
+  AllocatorType m_allocator;
 };
 
 } /* end namespace sidre */

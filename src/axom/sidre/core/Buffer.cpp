@@ -139,8 +139,9 @@ Buffer* Buffer::reallocate(IndexType num_elems)
   DataType dtype(m_node.dtype());
   dtype.set_number_of_elements(num_elems);
   IndexType new_size = dtype.strided_bytes();
-  void* new_data_ptr =
-    axom::reallocate(static_cast<std::uint8_t*>(old_data_ptr), new_size);
+
+  AllocatorType alloc = m_views.get_allocator();
+  void* new_data_ptr = rebind_realloc(alloc, old_data_ptr, getTotalBytes(), new_size);
 
   if(num_elems == 0 || new_data_ptr != nullptr)
   {
@@ -173,7 +174,7 @@ Buffer* Buffer::deallocate()
   releaseBytes(getVoidPtr());
   m_node.set_external(DataType(m_node.dtype()), nullptr);
 
-  std::set<View*>::iterator vit = m_views.begin();
+  auto vit = m_views.begin();
   for(; vit != m_views.end(); ++vit)
   {
     (*vit)->unapply();
@@ -330,7 +331,11 @@ void Buffer::importFrom(conduit::Node& buffer_holder)
  *
  *************************************************************************
  */
-Buffer::Buffer(IndexType uid) : m_index(uid), m_views(), m_node() { }
+Buffer::Buffer(IndexType uid, const AllocatorType& alloc)
+  : m_index(uid)
+  , m_views(alloc)
+  , m_node(alloc)
+{ }
 
 /*
  *************************************************************************
@@ -401,7 +406,7 @@ void Buffer::detachFromView(View* view)
  */
 void Buffer::detachFromAllViews()
 {
-  std::set<View*>::iterator vit = m_views.begin();
+  auto vit = m_views.begin();
   for(; vit != m_views.end(); ++vit)
   {
     (*vit)->setBufferViewToEmpty();
@@ -420,8 +425,8 @@ void Buffer::detachFromAllViews()
  */
 void* Buffer::allocateBytes(IndexType num_bytes, int allocID)
 {
-  allocID = getValidAllocatorID(allocID);
-  return axom::allocate<std::int8_t>(num_bytes, allocID);
+  AllocatorType alloc = m_views.get_allocator();
+  return rebind_alloc<AllocatorType, std::byte>(alloc, num_bytes);
 }
 
 /*
@@ -433,9 +438,8 @@ void* Buffer::allocateBytes(IndexType num_bytes, int allocID)
  */
 void Buffer::releaseBytes(void* ptr)
 {
-  // Pointer type here should always match new call in allocateBytes.
-  std::int8_t* ptr_copy = static_cast<std::int8_t*>(ptr);
-  axom::deallocate(ptr_copy);
+  AllocatorType alloc = m_views.get_allocator();
+  return rebind_deallocate(alloc, ptr, getTotalBytes());
 }
 
 } /* end namespace sidre */

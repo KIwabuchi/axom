@@ -6,9 +6,9 @@
 /*!
  ******************************************************************************
  *
- * \file ListCollection.hpp
+ * \file ListCollectionCore.hpp
  *
- * \brief   Header file for ListCollection.
+ * \brief   Header file for ListCollectionCore.
  *
  *          This is an implementation of ItemCollection to hold a
  *          collection of items of a fixed type. This implementation
@@ -95,9 +95,7 @@
 
 // Sidre project headers
 #include "SidreTypes.hpp"
-#include "ItemCollection.hpp"
 #include "Memory.hpp"
-#include "MetallContainer.hpp"
 
 namespace axom
 {
@@ -105,7 +103,7 @@ namespace sidre
 {
 ////////////////////////////////////////////////////////////////////////
 //
-// ListCollection keeps an index constant for each item
+// ListCollectionCore keeps an index constant for each item
 // as long as it remains in the collection; i.e., don't shift indices
 // around.  It has the additional benefit that users can hold on to
 // item indices without them being changed without notice.
@@ -115,22 +113,19 @@ namespace sidre
 /*!
  *************************************************************************
  *
- * \class ListCollection
+ * \class ListCollectionCore
  *
- * \brief ListCollection is a container class template for holding
+ * \brief ListCollectionCore is a container class template for holding
  *        a collection of items of template parameter type T, using
  *        a list container.
  *
  *************************************************************************
  */
 template <typename T>
-class ListCollection : public ItemCollection<T>
+class ListCollectionCore
 {
 public:
   using value_type = T;
-  using iterator = typename ItemCollection<T>::iterator;
-  using const_iterator = typename ItemCollection<T>::const_iterator;
-
   using AllocatorType = metall::manager::fallback_allocator<void>;
   using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
 
@@ -140,7 +135,7 @@ public:
   // operator suffice for this class.
   //
 
-  ListCollection(const AllocatorType& alloc)
+  ListCollectionCore(const AllocatorType& alloc)
     : m_items(alloc)
     , m_free_ids(alloc)
     , m_index_list(alloc)
@@ -195,15 +190,6 @@ public:
     m_index_list.clear();
   }
 
-  iterator begin() { return iterator(this, true); }
-  iterator end() { return iterator(this, false); }
-
-  const_iterator cbegin() const { return const_iterator(this, true); }
-  const_iterator cend() const { return const_iterator(this, false); }
-
-  const_iterator begin() const { return const_iterator(this, true); }
-  const_iterator end() const { return const_iterator(this, false); }
-
 private:
   metall_container::vector<Ptr<VoidPtr, T>> m_items;
   metall_container::stack<IndexType> m_free_ids;
@@ -212,7 +198,7 @@ private:
 };
 
 template <typename T>
-IndexType ListCollection<T>::getFirstValidIndex() const
+IndexType ListCollectionCore<T>::getFirstValidIndex() const
 {
   IndexType idx = 0;
   while(static_cast<unsigned>(idx) < m_items.size() &&
@@ -224,7 +210,7 @@ IndexType ListCollection<T>::getFirstValidIndex() const
 }
 
 template <typename T>
-IndexType ListCollection<T>::getNextValidIndex(IndexType idx) const
+IndexType ListCollectionCore<T>::getNextValidIndex(IndexType idx) const
 {
   if(idx == InvalidIndex)
   {
@@ -241,7 +227,7 @@ IndexType ListCollection<T>::getNextValidIndex(IndexType idx) const
 }
 
 template <typename T>
-IndexType ListCollection<T>::insertItem(T* item, const std::string& name)
+IndexType ListCollectionCore<T>::insertItem(T* item, const std::string& name)
 {
   SLIC_WARNING_IF(!name.empty(),
                   "Item " << name << " added to Group "
@@ -271,7 +257,7 @@ IndexType ListCollection<T>::insertItem(T* item, const std::string& name)
 }
 
 template <typename T>
-T* ListCollection<T>::removeItem(IndexType idx)
+T* ListCollectionCore<T>::removeItem(IndexType idx)
 {
   T* ret_val = nullptr;
   if(hasItem(idx))
