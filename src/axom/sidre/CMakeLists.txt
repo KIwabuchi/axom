@@ -27,11 +27,17 @@ set(sidre_headers
     core/Attribute.hpp
     core/AttrValues.hpp
     core/ItemCollection.hpp
+    core/ItemCollectionUmbrella.hpp
     core/IndexedCollection.hpp
+    core/IndexedCollectionCore.hpp
     core/ListCollection.hpp
+    core/ListCollectionCore.hpp
     core/MapCollection.hpp
+    core/MapCollectionCore.hpp
     core/SidreTypes.hpp
-    core/SidreDataTypeIds.h )
+    core/SidreDataTypeIds.h
+    core/Memory.hpp
+    core/MetallContainer.hpp )
 
 set(sidre_sources
     core/Buffer.cpp
