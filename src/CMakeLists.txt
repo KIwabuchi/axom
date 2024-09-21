@@ -134,15 +134,6 @@ axom_add_code_checks()
 #------------------------------------------------------------------------------
 # Add source directories
 #------------------------------------------------------------------------------
-include(FetchContent)
-find_package(Boost 1.80 REQUIRED)
-FetchContent_Declare(
-        Metall
-        GIT_REPOSITORY https://github.com/LLNL/metall.git
-        GIT_TAG master
-)
-FetchContent_MakeAvailable(Metall)
-
 add_subdirectory(thirdparty)
 
 include(cmake/AxomVersion.cmake)
