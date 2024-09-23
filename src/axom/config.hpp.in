@@ -40,7 +40,7 @@
 #cmakedefine AXOM_NO_INT64_T
 
 #ifndef AXOM_NO_INT64_T
-#cmakedefine AXOM_USE_64BIT_INDEXTYPE
+  #cmakedefine AXOM_USE_64BIT_INDEXTYPE
 #endif
 
 /*
@@ -70,11 +70,8 @@
 #cmakedefine AXOM_USE_HDF5
 #cmakedefine AXOM_USE_LUA
 #cmakedefine AXOM_USE_MFEM
-#cmakedefine AXOM_USE_RAJA
 #cmakedefine AXOM_USE_SCR
 #cmakedefine AXOM_USE_SOL
-#cmakedefine AXOM_USE_SPARSEHASH
-#cmakedefine AXOM_USE_UMPIRE
 
 /*
  * Compiler defines for third-party executables
@@ -87,9 +84,9 @@
  * Windows GDI geometry classes (NOGDI).
  */
 #ifdef WIN32
-#define _USE_MATH_DEFINES
-#define NOGDI
-#define NOMINMAX
+  #define _USE_MATH_DEFINES
+  #define NOGDI
+  #define NOMINMAX
 #endif
 
 /*
