@@ -280,7 +280,7 @@ spack:
     camp:
       require: "@2024.02.0"
     conduit:
-      require: "@0.9.1~shared~test~examples~utilities"
+      require: "@metallize~shared~test~examples~utilities"
     hdf5:
       variants: ~shared~mpi
     hypre:

@@ -38,11 +38,12 @@ class Axom(CachedCMakePackage, CudaPackage, ROCmPackage):
     maintainers("white238")
 
     homepage = "https://github.com/LLNL/axom"
-    git = "https://github.com/LLNL/axom.git"
+    git = "https://github.com/KIwabuchi/axom.git"
     tags = ["radiuss"]
 
     license("BSD-3-Clause")
 
+    version("metallize", branch="metallize")
     version("main", branch="main")
     version("develop", branch="develop")
     version("0.9.0", tag="v0.9.0", commit="5f531595d941d16fa3b8583bfc347a845d9feb6d")
@@ -205,11 +206,11 @@ class Axom(CachedCMakePackage, CudaPackage, ROCmPackage):
     # Hard requirement after Axom 0.6.1
     conflicts("~cpp14", when="@0.6.2:")
 
-    # Conduit's cmake config files moved and < 0.4.0 can't find it
-    conflicts("^conduit@0.7.2:", when="@:0.4.0")
+    # # Conduit's cmake config files moved and < 0.4.0 can't find it
+    # conflicts("^conduit@0.7.2:", when="@:0.4.0")
 
-    # Sidre requires conduit_blueprint_mpi.hpp
-    conflicts("^conduit@:0.6.0", when="@0.5.0:")
+    # # Sidre requires conduit_blueprint_mpi.hpp
+    # conflicts("^conduit@:0.6.0", when="@0.5.0:")
 
     conflicts("+openmp", when="+rocm")
     conflicts("+cuda", when="+rocm")
