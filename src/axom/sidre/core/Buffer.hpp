@@ -88,6 +88,13 @@ public:
     return static_cast<IndexType>(m_views.size());
   }
 
+  // FIXME: This is a dummpy function, just for passing compile errors
+  std::string getName() const
+  {
+    assert(false);
+    return std::string();
+  }
+
   //@}
 
   //@{

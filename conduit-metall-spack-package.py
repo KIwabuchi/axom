@@ -186,6 +186,11 @@ class Conduit(CMakePackage):
     depends_on("caliper", when="+caliper")
 
     #######################
+    # Metall
+    #######################
+    depends_on("metall")
+
+    #######################
     # Documentation related
     #######################
     depends_on("py-sphinx", when="+python+doc", type="build")
