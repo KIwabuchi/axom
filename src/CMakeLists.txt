@@ -112,10 +112,11 @@ include(${BLT_SOURCE_DIR}/SetupBLT.cmake)
 ### Doing this later causes an issue.
 ### (Conduit can't find Metall)
 include(FetchContent)
+find_package(Threads REQUIRED)
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.26.0")
     cmake_policy(SET CMP0167 NEW)
 endif()
-find_package(Boost 1.64 REQUIRED)
+find_package(Boost 1.80 REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS}) # Maybe this is not necessary
 find_package(Metall REQUIRED)
 message(STATUS "Metall_FOUND = ${Metall_FOUND}")
