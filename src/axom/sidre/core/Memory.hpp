@@ -55,3 +55,11 @@ inline T* rebind_construct(A& alloc, Args&&... args)
 
   return ptr;
 }
+
+template <typename A, typename P>
+inline void rebind_delete(A& alloc, P ptr)
+{
+  using T = typename std::pointer_traits<P>::element_type;
+  ptr->~T();
+  rebind_deallocate(alloc, ptr);
+}

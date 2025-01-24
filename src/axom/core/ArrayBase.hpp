@@ -1154,7 +1154,7 @@ struct DeviceStagingBuffer<T, OperationSpace::Device>
   {
     int allocator_id = 0;
   #ifdef AXOM_USE_UMPIRE
-    allocator_id = axom::detail::getAllocatorID<axom::MemorySpace::Host>();
+    allocator_id = axom::detail::getAllocatorID<axom::MemorySpace::Dynamic>();
   #endif
     m_staging_buf = axom::allocate<T>(nelems, allocator_id);
     if(read_from_data)

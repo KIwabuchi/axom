@@ -21,7 +21,7 @@ struct ArrayTestParams
 {
   using TheExecSpace = ExecSpace;
 #ifdef AXOM_USE_UMPIRE
-  static constexpr axom::MemorySpace HostSpace = axom::MemorySpace::Host;
+  static constexpr axom::MemorySpace HostSpace = axom::MemorySpace::Dynamic;
 #else
   static constexpr axom::MemorySpace HostSpace = axom::MemorySpace::Dynamic;
 #endif
@@ -79,7 +79,7 @@ using MyTypes = ::testing::Types<
   ArrayTestParams<axom::HIP_EXEC<256, axom::ASYNC>, axom::MemorySpace::Pinned>,
 #endif
 #if defined(AXOM_USE_UMPIRE)
-  ArrayTestParams<axom::SEQ_EXEC, axom::MemorySpace::Host>,
+  ArrayTestParams<axom::SEQ_EXEC, axom::MemorySpace::Dynamic>,
 #endif
   ArrayTestParams<axom::SEQ_EXEC>>;
 

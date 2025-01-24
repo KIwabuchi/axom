@@ -338,9 +338,10 @@ public:
     // _quest_pic_locate_end
 
 #ifdef AXOM_USE_UMPIRE
-    axom::Array<SpacePt, 1, axom::MemorySpace::Host> qptHost = pts;
-    axom::Array<IndexType, 1, axom::MemorySpace::Host> cellIdsHost = outCellIds;
-    axom::Array<SpacePt, 1, axom::MemorySpace::Host> isoparHost = outIsopar;
+    axom::Array<SpacePt, 1, axom::MemorySpace::Dynamic> qptHost = pts;
+    axom::Array<IndexType, 1, axom::MemorySpace::Dynamic> cellIdsHost =
+      outCellIds;
+    axom::Array<SpacePt, 1, axom::MemorySpace::Dynamic> isoparHost = outIsopar;
 #else
     auto qptHost = pts.view();
     auto cellIdsHost = outCellIds.view();

@@ -6,6 +6,8 @@
 #include "axom/config.hpp"
 #include "axom/core.hpp"
 
+#include <chrono>
+
 #ifdef AXOM_USE_MFEM
 
   #include <string>
@@ -29,6 +31,39 @@ using mfem::GridFunction;
 using mfem::Mesh;
 using mfem::Ordering;
 
+std::string g_latest_datastore_path;
+
+  #include <filesystem>
+inline void run_du(const std::string& path)
+{
+  std::filesystem::path p(path);
+  const auto dir = p.parent_path().string();
+
+  // Buffer to store the output of the command
+  std::array<char, 256> buffer;
+
+  // Open the command for reading
+  std::FILE* pipe =
+    popen(std::string(std::string("du -h -d 1 ") + dir).c_str(), "r");
+  if(!pipe)
+  {
+    std::cerr << "Failed to open pipe for command." << std::endl;
+    return;
+  }
+
+  // Read the output a line at a time and print
+  while(fgets(buffer.data(), buffer.size(), pipe) != nullptr)
+  {
+    std::cout << buffer.data();
+  }
+
+  // Close the pipe
+  int status = pclose(pipe);
+  if(status == -1)
+  {
+    std::cerr << "Failed to close pipe." << std::endl;
+  }
+}
 namespace axom
 {
 namespace sidre
@@ -89,22 +124,8 @@ MFEMSidreDataCollection::MFEMSidreDataCollection(const std::string& collection_n
   : mfem::DataCollection(collection_name, the_mesh)
   , m_owns_datastore(true)
   , m_owns_mesh_data(own_mesh_data)
+  , m_collection_name(collection_name)
 {
-  assert(false && "Does not work now");
-  m_datastore_ptr = nullptr;
-  // new sidre::DataStore();
-
-  sidre::Group* global_grp =
-    m_datastore_ptr->getRoot()->createGroup(collection_name + "_global");
-  sidre::Group* domain_grp =
-    m_datastore_ptr->getRoot()->createGroup(collection_name);
-
-  m_bp_grp = domain_grp->createGroup("blueprint");
-  // Currently only rank 0 adds anything to bp_index.
-  m_bp_index_grp = global_grp->createGroup("blueprint_index/" + name);
-
-  m_named_bufs_grp = domain_grp->createGroup("named_buffers");
-
   this->own_data = own_mesh_data;
 
   if(the_mesh)
@@ -128,15 +149,24 @@ MFEMSidreDataCollection::MFEMSidreDataCollection(const std::string& collection_n
 MFEMSidreDataCollection::MFEMSidreDataCollection(const std::string& collection_name,
                                                  Group* bp_index_grp,
                                                  Group* domain_grp,
-                                                 bool own_mesh_data)
+                                                 bool own_mesh_data,
+                                                 bool restart)
   : mfem::DataCollection(collection_name)
   , m_owns_datastore(false)
   , m_owns_mesh_data(own_mesh_data)
   , m_bp_index_grp(bp_index_grp)
+  , m_collection_name(collection_name)
 {
-  m_bp_grp = domain_grp->createGroup("blueprint");
-
-  m_named_bufs_grp = domain_grp->createGroup("named_buffers");
+  if(restart)
+  {
+    m_bp_grp = domain_grp->getGroup("blueprint");
+    m_named_bufs_grp = domain_grp->getGroup("named_buffers");
+  }
+  else
+  {
+    m_bp_grp = domain_grp->createGroup("blueprint");
+    m_named_bufs_grp = domain_grp->createGroup("named_buffers");
+  }
 
   #if defined(AXOM_USE_MPI) && defined(MFEM_USE_MPI)
   m_comm = MPI_COMM_NULL;
@@ -150,7 +180,9 @@ MFEMSidreDataCollection::~MFEMSidreDataCollection()
   attr_map.DeleteData(true);
   if(m_owns_datastore)
   {
-    delete m_datastore_ptr;
+    // m_datastore_ptr is allocated by Metall,
+    // so no delete here
+    //delete m_datastore_ptr;
   }
 }
 
@@ -863,13 +895,23 @@ void MFEMSidreDataCollection::SetGroupPointers(Group* bp_index_grp,
 void MFEMSidreDataCollection::Load(const std::string& path,
                                    const std::string& protocol)
 {
+  std::cout << __FILE__ << " : " << __LINE__ << " Load from " << path
+            << std::endl;
+
+  auto start_time = std::chrono::high_resolution_clock::now();
+
+  if(!m_datastore_ptr)
+  {
+    LoadDataStore(path);
+  }
+
   DataCollection::DeleteAll();
   // Reset DataStore?
 
   int numInputRanks = 1;
   int numCommRanks = 1;
 
-  #if defined(AXOM_USE_MPI) && defined(MFEM_USE_MPI)
+  #if 0 && defined(AXOM_USE_MPI) && defined(MFEM_USE_MPI)
   if(m_comm != MPI_COMM_NULL)
   {
     // The conduit abstraction appears to automatically handle the ".root"
@@ -928,7 +970,10 @@ void MFEMSidreDataCollection::Load(const std::string& path,
   else
   #endif
   {
-    m_bp_grp->load(path, protocol);
+    // std::cout << __FILE__ << ":" << __LINE__ << " Metall mode: skip load()"
+    // << std::endl;
+    // TODO: better implementaion
+    // m_bp_grp->load(path, protocol);  // just skip this when Metall is enabled?
   }
 
   // If the data collection created the datastore, it knows the layout of where
@@ -953,6 +998,36 @@ void MFEMSidreDataCollection::Load(const std::string& path,
     UpdateStateFromDS();
     UpdateMeshAndFieldsFromDS();
   }
+
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration =
+    std::chrono::duration_cast<std::chrono::milliseconds>(stop - start_time);
+  std::cout << __FILE__ << " line " << __LINE__
+            << " load core took: " << duration.count() << " milsec."
+            << std::endl;
+}
+
+void MFEMSidreDataCollection::LoadDataStore(const std::string& datastore_path)
+{
+  m_metall_mpi_adaptor = std::make_unique<metall::utility::metall_mpi_adaptor>(
+    metall::open_only,
+    datastore_path + "_metall",
+    m_comm);
+  auto& manager = m_metall_mpi_adaptor->get_local_manager();
+  m_datastore_ptr = manager.find<axom::sidre::DataStore>("ds").first;
+
+  sidre::Group* global_grp =
+    m_datastore_ptr->getRoot()->getGroup(m_collection_name + "_global");
+
+  sidre::Group* domain_grp =
+    m_datastore_ptr->getRoot()->getGroup(m_collection_name);
+
+  m_bp_grp = domain_grp->getGroup("blueprint");
+
+  // Currently only rank 0 adds anything to bp_index.
+  m_bp_index_grp = global_grp->getGroup("blueprint_index/" + name);
+
+  m_named_bufs_grp = domain_grp->getGroup("named_buffers");
 }
 
 void MFEMSidreDataCollection::LoadExternalData(const std::string& path)
@@ -1100,16 +1175,23 @@ void MFEMSidreDataCollection::Save(const std::string& filename,
   PrepareToSave();
 
   std::string file_path = get_file_path(filename);
+  g_latest_datastore_path = file_path;
+
   #if defined(AXOM_USE_MPI) && defined(MFEM_USE_MPI)
   create_directory(file_path, mesh, myid);
   #else
   create_directory(prefix_path, mesh, myid);
   #endif
 
+  std::cout << __FILE__ << " : " << __LINE__ << " Save to " << file_path
+            << std::endl;
+
   sidre::Group* blueprint_indicies_grp = m_bp_index_grp->getParent();
-  #if defined(AXOM_USE_MPI) && defined(MFEM_USE_MPI)
+
+  #if 0 && defined(AXOM_USE_MPI) && defined(MFEM_USE_MPI)
   if(m_comm != MPI_COMM_NULL)
   {
+
     IOManager writer(m_comm);
 
     // Create a shallow mirror of the DataStore structure that only includes
@@ -1196,11 +1278,18 @@ void MFEMSidreDataCollection::Save(const std::string& filename,
   else
   #endif
   {
-    // If serial, use sidre group writer.
-    m_bp_grp->save(file_path, protocol);
+    // std::cout << __FILE__ << ":" << __LINE__ << " Metall mode: skip save()"
+    // << std::endl;
+    // TODO: better implementaion
 
-    blueprint_indicies_grp->save(file_path + ".root", protocol);
+    // If serial, use sidre group writer.
+    // m_bp_grp->save(file_path, protocol);  // just skip this when Metall is enabled?
+
+    // TODO: Need to find out what this line does.
+    //blueprint_indicies_grp->save(file_path + ".root", protocol);
   }
+  // std::cout << __FILE__ << " : " << __LINE__ << " Saved." << std::endl;
+  // run_du(file_path);
 }
 
 // private method

@@ -91,8 +91,8 @@ struct CandidateFinderBase
   static constexpr bool ExecOnDevice =
     axom::execution_space<ExecSpace>::onDevice();
   static constexpr MemorySpace Space =
-    ExecOnDevice ? axom::MemorySpace::Device : axom::MemorySpace::Host;
-  static constexpr MemorySpace HostSpace = axom::MemorySpace::Host;
+    ExecOnDevice ? axom::MemorySpace::Device : axom::MemorySpace::Dynamic;
+  static constexpr MemorySpace HostSpace = axom::MemorySpace::Dynamic;
 #else
   static constexpr MemorySpace Space = axom::MemorySpace::Dynamic;
   static constexpr MemorySpace HostSpace = axom::MemorySpace::Dynamic;

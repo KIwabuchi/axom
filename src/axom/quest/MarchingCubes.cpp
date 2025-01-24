@@ -199,13 +199,13 @@ void MarchingCubes::populateContourMesh(
     const bool hostAndInternalMemoriesAreSeparate =
       internalMemorySpace != axom::MemorySpace::Dynamic
 #ifdef AXOM_USE_UMPIRE
-      && internalMemorySpace != axom::MemorySpace::Host
+      && internalMemorySpace != axom::MemorySpace::Dynamic
 #endif
       ;
     const int hostAllocatorId = hostAndInternalMemoriesAreSeparate
       ?
 #ifdef AXOM_USE_UMPIRE
-      axom::detail::getAllocatorID<axom::MemorySpace::Host>()
+      axom::detail::getAllocatorID<axom::MemorySpace::Dynamic>()
 #else
       axom::detail::getAllocatorID<axom::MemorySpace::Dynamic>()
 #endif

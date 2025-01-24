@@ -158,13 +158,15 @@ public:
 #ifdef AXOM_USE_RAJA
     using IndexView = axom::ArrayView<IndexType>;
   #ifdef AXOM_USE_UMPIRE
-    using HostIndexArray = axom::Array<IndexType, 1, axom::MemorySpace::Host>;
-    using HostPointArray = axom::Array<SpacePoint, 1, axom::MemorySpace::Host>;
+    using HostIndexArray = axom::Array<IndexType, 1, axom::MemorySpace::Dynamic>;
+    using HostPointArray = axom::Array<SpacePoint, 1, axom::MemorySpace::Dynamic>;
 
-    using HostIndexView = axom::ArrayView<IndexType, 1, axom::MemorySpace::Host>;
-    using HostPointView = axom::ArrayView<SpacePoint, 1, axom::MemorySpace::Host>;
+    using HostIndexView =
+      axom::ArrayView<IndexType, 1, axom::MemorySpace::Dynamic>;
+    using HostPointView =
+      axom::ArrayView<SpacePoint, 1, axom::MemorySpace::Dynamic>;
     using ConstHostPointView =
-      axom::ArrayView<const SpacePoint, 1, axom::MemorySpace::Host>;
+      axom::ArrayView<const SpacePoint, 1, axom::MemorySpace::Dynamic>;
   #else
     using HostIndexArray = IndexArray;
     using HostPointArray = axom::Array<SpacePoint>;

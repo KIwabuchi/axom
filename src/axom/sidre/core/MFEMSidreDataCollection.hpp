@@ -11,9 +11,15 @@
 #include "Group.hpp"
 #include "View.hpp"
 
+#include <metall/metall.hpp>
+#include <metall/utility/metall_mpi_adaptor.hpp>
+
 #ifdef AXOM_USE_MFEM
 
   #include "mfem.hpp"
+
+/// FIXM: This is a temporarily impleementation
+extern std::string g_latest_datastore_path;
 
 namespace axom
 {
@@ -225,7 +231,8 @@ public:
   MFEMSidreDataCollection(const std::string& collection_name,
                           Group* bp_index_grp,
                           Group* domain_grp,
-                          bool owns_mesh_data = false);
+                          bool owns_mesh_data = false,
+                          bool restart = false);
 
   #if defined(AXOM_USE_MPI) && defined(MFEM_USE_MPI)
   /// Associate an MPI communicator with the collection.
@@ -361,10 +368,10 @@ public:
   /** Subsequent calls to RegisterField with field_names of the form
    * @p volume_fraction_field_name_<material_id> will result in the addition
    * of a volume buffer to the matset @p matset_name corresponding to @p material_id.
-   * 
+   *
    * Note that this does not inhibit the addition of the field - that is, the GridFunction
    * data will be present as both a field and a volume fraction buffer
-   * 
+   *
    * @param volume_fraction_field_name The field name to associate with volume fractions
    * @param matset_name The material set to associate subsequently added volume fractions with
    *
@@ -377,15 +384,15 @@ public:
    * @p species_field_name_<material_id>_<component> will result in the addition
    * of its values to the specset @p specset_name corresponding to @p material_id.
    * and specified component
-   * 
+   *
    * Note that this does not inhibit the addition of the field - that is, the GridFunction
    * data will be present as both a field and within the species set
-   * 
+   *
    * @param species_field_name The field name to associate with the species set matset values
    * @param specset_name The name of the species set to associate added matset values with
    * @param matset_name The material set to associate with the species set
    * @param volume_dependent Whether the species set is volume-dependent
-   * 
+   *
    * @pre A matset called @a matset_name should be associated via AssociateMaterialSet
    *
    */
@@ -399,13 +406,13 @@ public:
    * @p dependent_field_name_<material_id> will result in the addition
    * of its values to the to the matset_vals of the @p dependent_field_name corresponding to
    * @p material_id
-   * 
+   *
    * Note that this does not inhibit the addition of the field - that is, the GridFunction
    * data will be present as both a field on its own and as part of the "top-level" field
-   * 
+   *
    * @param material_dependent_field_name The name of the field to mark as material-dependent
    * @param matset_name The material set to associate with the field
-   * 
+   *
    * @pre A matset called @a matset_name should be associated via AssociateMaterialSet
    *
    */
@@ -552,6 +559,9 @@ private:
   // If the data collection owns the datastore, it will store a pointer to it.
   // Otherwise, this pointer is nullptr.
   DataStore* m_datastore_ptr {nullptr};
+
+  // This one is used to allocate m_datastore_ptr.
+  metall::manager* m_metall {nullptr};
 
 protected:
   Group* named_buffers_grp() const;
@@ -720,6 +730,8 @@ private:
   /// blueprint index.
   void addMaterialSetToIndex();
 
+  void LoadDataStore(const std::string& datastore_path);
+
   // The names for the mesh and boundary topologies in the blueprint group,
   // and the suffix used to store their attributes (as fields)
   static const std::string s_mesh_topology_name;
@@ -734,6 +746,11 @@ private:
   std::unordered_map<std::string, std::string> m_specset_associations;
   // Maps material-dependent field names onto the material set they're associated with
   std::unordered_map<std::string, std::string> m_material_dependent_fields;
+
+  // This Metall and m_collection_name are used when the data collection does not own the datastore to
+  // open an existing Metall store.
+  std::unique_ptr<metall::utility::metall_mpi_adaptor> m_metall_mpi_adaptor;
+  std::string m_collection_name;
 };
 
 } /* namespace sidre */

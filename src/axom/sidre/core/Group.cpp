@@ -789,7 +789,8 @@ void Group::destroyView(const std::string& path)
     View* view = group->detachView(intpath);
     if(view != nullptr)
     {
-      delete view;
+      rebind_delete(m_allocator, view);
+      //delete view;
     }
   }
 }
@@ -806,7 +807,8 @@ void Group::destroyView(IndexType idx)
   View* view = detachView(idx);
   if(view != nullptr)
   {
-    delete view;
+    rebind_delete(m_allocator, view);
+    //delete view;
   }
 }
 
@@ -825,7 +827,8 @@ void Group::destroyViews()
     View* view = detachView(vidx);
     if(view != nullptr)
     {
-      delete view;
+      rebind_delete(m_allocator, view);
+      //delete view;
     }
 
     vidx = getNextValidViewIndex(vidx);
@@ -1199,7 +1202,8 @@ void Group::destroyGroup(const std::string& path)
     Group* targetgroup = group->detachGroup(intpath);
     if(targetgroup != nullptr)
     {
-      delete targetgroup;
+      rebind_delete(m_allocator, targetgroup);
+      // delete targetgroup;
     }
   }
 }
@@ -1224,7 +1228,8 @@ void Group::destroyGroupAndData(const std::string& path)
     if(targetgroup != nullptr)
     {
       targetgroup->destroyGroupSubtreeAndData();
-      delete targetgroup;
+      rebind_delete(m_allocator, targetgroup);
+      // delete targetgroup;
     }
   }
 }
@@ -1241,7 +1246,8 @@ void Group::destroyGroup(IndexType idx)
   Group* group = detachGroup(idx);
   if(group != nullptr)
   {
-    delete group;
+    rebind_delete(m_allocator, group);
+    //delete group;
   }
 }
 
@@ -1259,7 +1265,8 @@ void Group::destroyGroupAndData(IndexType idx)
   if(group != nullptr)
   {
     group->destroyGroupSubtreeAndData();
-    delete group;
+    rebind_delete(m_allocator, group);
+    //delete group;
   }
 }
 
@@ -1276,7 +1283,8 @@ void Group::destroyGroups()
   while(indexIsValid(gidx))
   {
     Group* group = this->getGroup(gidx);
-    delete group;
+    rebind_delete(m_allocator, group);
+    // delete group;
 
     gidx = getNextValidGroupIndex(gidx);
   }
@@ -2440,7 +2448,8 @@ void Group::destroyViewAndData(View* view)
     {
       getDataStore()->destroyBuffer(buffer);
     }
-    delete view;
+    rebind_delete(m_allocator, view);
+    //delete view;
   }
 }
 

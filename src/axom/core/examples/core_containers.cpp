@@ -330,9 +330,9 @@ void demoArrayDevice()
   // Note that if an allocator ID is incompatible with a memory space, the default
   // allocator ID for that memory space is used. Both of these examples will copy
   // memory to the host:
-  axom::Array<int, 1, axom::MemorySpace::Host> C_use_host_alloc(C_device);
+  axom::Array<int, 1, axom::MemorySpace::Dynamic> C_use_host_alloc(C_device);
   // The below will also print a warning in debug mode:
-  axom::Array<int, 1, axom::MemorySpace::Host> C_use_host_alloc_2(
+  axom::Array<int, 1, axom::MemorySpace::Dynamic> C_use_host_alloc_2(
     C_device,
     unified_alloc_id);
 
@@ -349,7 +349,7 @@ void demoArrayDevice()
   add<<<1, 1>>>(A_dynamic, B_unified, C_device);
 
   // Since our result array is in device memory, we copy it to host memory so we can view it.
-  axom::Array<int, 1, axom::MemorySpace::Host> C_host = C_device;
+  axom::Array<int, 1, axom::MemorySpace::Dynamic> C_host = C_device;
   std::cout << "Array C_host = " << C_host << std::endl;
 
   // We can also use a dynamic array, if we specify an allocator ID for host memory in the copy constructor.
@@ -380,7 +380,7 @@ void demoArrayDevice()
   });
 
   // Finally, copy things over to host memory so we can display the data
-  axom::Array<int, 1, axom::MemorySpace::Host> C_host_raja = C_view;
+  axom::Array<int, 1, axom::MemorySpace::Dynamic> C_host_raja = C_view;
   std::cout << "Array C_host_raja = " << C_host_raja << std::endl;
   // _array_w_raja_end
   #endif

@@ -784,7 +784,7 @@ void check_device(axom::Array<T, DIM, SPACE>& v)
   }
 
   // Then check the contents by assigning to an explicitly Host Array
-  axom::Array<T, 1, axom::MemorySpace::Host> check_raw_array_host = v;
+  axom::Array<T, 1, axom::MemorySpace::Dynamic> check_raw_array_host = v;
   EXPECT_EQ(check_raw_array_host.size(), size);
   for(int i = 0; i < check_raw_array_host.size(); i++)
   {
@@ -805,7 +805,7 @@ void check_device(axom::Array<T, DIM, SPACE>& v)
   }
 
   // Then check the contents by assigning to an explicitly Host array
-  axom::Array<T, 1, axom::MemorySpace::Host> check_view_array_host = view;
+  axom::Array<T, 1, axom::MemorySpace::Dynamic> check_view_array_host = view;
   EXPECT_EQ(check_view_array_host.size(), size);
   for(int i = 0; i < check_view_array_host.size(); i++)
   {
@@ -866,7 +866,7 @@ void check_device_2D(axom::Array<T, 2, SPACE>& v)
   }
 
   // Then check the contents by assigning to an explicitly Host array
-  axom::Array<T, 2, axom::MemorySpace::Host> check_raw_array_host = v;
+  axom::Array<T, 2, axom::MemorySpace::Dynamic> check_raw_array_host = v;
   EXPECT_EQ(check_raw_array_host.size(), size);
   EXPECT_EQ(check_raw_array_host.shape(), v.shape());
 
@@ -897,7 +897,7 @@ void check_device_2D(axom::Array<T, 2, SPACE>& v)
   }
 
   // Then check the contents by assigning to an explicitly Host array
-  axom::Array<T, 2, axom::MemorySpace::Host> check_view_array_host = view;
+  axom::Array<T, 2, axom::MemorySpace::Dynamic> check_view_array_host = view;
   EXPECT_EQ(check_view_array_host.size(), size);
   EXPECT_EQ(check_view_array_host.shape(), v.shape());
 
@@ -1303,7 +1303,7 @@ TEST(core_array, checkIterator)
 void checkIteratorDeviceImpl()
 {
   constexpr int SIZE = 1000;
-  axom::Array<int, 1, axom::MemorySpace::Host> v_int_host(SIZE);
+  axom::Array<int, 1, axom::MemorySpace::Dynamic> v_int_host(SIZE);
   axom::Array<int, 1, axom::MemorySpace::Device> v_int(SIZE);
 
   /* Push 0...999 elements */
@@ -2037,7 +2037,7 @@ TEST(core_array, checkDefaultInitializationDevice)
     axom::Array<int, 1, axom::MemorySpace::Device> v_int(capacity);
 
     // Then copy it to the host
-    axom::Array<int, 1, axom::MemorySpace::Host> v_int_host(v_int);
+    axom::Array<int, 1, axom::MemorySpace::Dynamic> v_int_host(v_int);
 
     for(const auto ele : v_int_host)
     {
@@ -2049,7 +2049,7 @@ TEST(core_array, checkDefaultInitializationDevice)
       capacity);
 
     // Then copy it to the host
-    axom::Array<HasDefault, 1, axom::MemorySpace::Host> v_has_default_host(
+    axom::Array<HasDefault, 1, axom::MemorySpace::Dynamic> v_has_default_host(
       v_has_default_device);
 
     for(const auto& ele : v_has_default_host)

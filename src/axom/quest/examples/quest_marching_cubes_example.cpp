@@ -1644,11 +1644,11 @@ int allocatorIdToTest(axom::runtime_policy::Policy policy)
   // Memory resource.  For testing, choose device memory if appropriate.
   //---------------------------------------------------------------------------
   int allocatorID = policy == RuntimePolicy::seq
-    ? axom::detail::getAllocatorID<axom::MemorySpace::Host>()
+    ? axom::detail::getAllocatorID<axom::MemorySpace::Dynamic>()
     :
   #if defined(AXOM_RUNTIME_POLICY_USE_OPENMP)
     policy == RuntimePolicy::omp
-    ? axom::detail::getAllocatorID<axom::MemorySpace::Host>()
+    ? axom::detail::getAllocatorID<axom::MemorySpace::Dynamic>()
     :
   #endif
   #if defined(AXOM_RUNTIME_POLICY_USE_CUDA)

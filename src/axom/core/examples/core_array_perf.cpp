@@ -167,11 +167,11 @@ int allocatorIdFromPolicy(axom::runtime_policy::Policy policy)
   AXOM_UNUSED_VAR(policy);
 #if defined(AXOM_USE_UMPIRE)
   int allocatorID = policy == axom::runtime_policy::Policy::seq
-    ? axom::detail::getAllocatorID<axom::MemorySpace::Host>()
+    ? axom::detail::getAllocatorID<axom::MemorySpace::Dynamic>()
     :
   #if defined(AXOM_RUNTIME_POLICY_USE_OPENMP)
     policy == axom::runtime_policy::Policy::omp
-    ? axom::detail::getAllocatorID<axom::MemorySpace::Host>()
+    ? axom::detail::getAllocatorID<axom::MemorySpace::Dynamic>()
     :
   #endif
   #if defined(AXOM_RUNTIME_POLICY_USE_CUDA)
