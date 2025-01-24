@@ -147,6 +147,11 @@ public:
   using AllocatorType = metall::manager::fallback_allocator<void>;
   using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
 
+  /*!
+   * \brief Destructor destroys all Views and child Groups.
+   */
+  ~Group();
+
   //@{
   //!  @name Basic query and accessor methods.
 
@@ -1756,11 +1761,6 @@ private:
         DataStore* datastore,
         bool is_list,
         const AllocatorType& alloc);
-
-  /*!
-   * \brief Destructor destroys all Views and child Groups.
-   */
-  ~Group();
 
   //@}
 

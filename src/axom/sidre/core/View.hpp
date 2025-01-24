@@ -105,6 +105,11 @@ public:
   using AllocatorType = metall::manager::fallback_allocator<void>;
   using VoidPtr = Ptr<typename AllocatorType::pointer, void>;
 
+  /*!
+   * \brief dtor.
+   */
+  ~View();
+
   //@{
   //!  @name View query and accessor methods
 
@@ -1335,11 +1340,6 @@ private:
    * \brief Private copy ctor.
    */
   View(const View& source);
-
-  /*!
-   * \brief Private dtor.
-   */
-  ~View();
 
   //@}
 
