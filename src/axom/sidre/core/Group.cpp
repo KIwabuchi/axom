@@ -3102,7 +3102,7 @@ IndexType Group::getViewIndex(const std::string& name) const
  *
  *************************************************************************
  */
-const std::string& Group::getViewName(IndexType idx) const
+std::string_view Group::getViewName(IndexType idx) const
 {
   SLIC_CHECK_MSG(
     hasView(idx),

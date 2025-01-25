@@ -411,7 +411,7 @@ public:
    *
    *        If no such View exists, return sidre::InvalidName.
    */
-  const std::string& getViewName(IndexType idx) const;
+  std::string_view getViewName(IndexType idx) const;
 
   //@}
 
@@ -1209,7 +1209,7 @@ public:
    * attached to a Buffer, the Buffer and its data will also be destroyed.
    * Buffer data will not be destroyed if there are other Views associated
    * with the Buffer.
-   * 
+   *
    * If no Group exists at the given path, method is a no-op.
    */
   void destroyGroupAndData(const std::string& path);
@@ -1222,7 +1222,7 @@ public:
    * attached to a Buffer, the Buffer and its data will also be destroyed.
    * Buffer data will not be destroyed if there are other Views associated
    * with the Buffer.
-   * 
+   *
    * If no Group exists with the given index, method is a no-op.
    */
   void destroyGroupAndData(IndexType idx);

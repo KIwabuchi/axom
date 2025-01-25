@@ -92,7 +92,7 @@ public:
   std::string getName() const
   {
     assert(false);
-    return std::string();
+    return InvalidName;
   }
 
   //@}
