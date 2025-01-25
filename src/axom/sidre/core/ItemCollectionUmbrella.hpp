@@ -292,7 +292,7 @@ public:
   }
 
   ///
-  const std::string& getItemName(IndexType idx) const
+  std::string_view getItemName(IndexType idx) const
   {
     if (m_type == store_type::map) {
       return m_map->getItemName(idx);
